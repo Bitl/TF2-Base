@@ -23,6 +23,7 @@ class CTFTeam;
 class CRopeKeyframe;
 class CVGuiScreen;
 class KeyValues;
+class CTFWrench;
 struct animevent_t;
 
 #define OBJECT_REPAIR_RATE		10			// Health healed per second while repairing
@@ -48,7 +49,8 @@ if ( object_verbose.GetInt() )									\
 // ------------------------------------------------------------------------ //
 // Resupply object that's built by the player
 // ------------------------------------------------------------------------ //
-class CBaseObject : public CBaseCombatCharacter, public IHasBuildPoints, public IScorer
+DECLARE_AUTO_LIST(IBaseObjectAutoList)
+class CBaseObject : public CBaseCombatCharacter, public IHasBuildPoints, public IScorer, public IBaseObjectAutoList
 {
 	DECLARE_CLASS( CBaseObject, CBaseCombatCharacter );
 public:

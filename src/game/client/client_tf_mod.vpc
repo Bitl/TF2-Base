@@ -43,6 +43,12 @@ $Project "Client (TF)"
 		$File	"$SRCDIR\game\shared\teamplay_round_timer.h"
 		$File	"TeamBitmapImage.cpp"
 		$File	"voice_menu.cpp"
+		
+		$Folder "NextBot"
+		{
+			$File	"NextBot\c_NextBot.cpp"
+			$File	"NextBot\c_NextBot.h"
+		}
 
 		$Folder	"TF"
 		{

@@ -30,7 +30,17 @@
 //			Can either be capped by both teams at once, or just by one
 //			Time to capture and number of people required to capture are both passed by the mapper
 //-----------------------------------------------------------------------------
-class CTriggerAreaCapture : public CBaseTrigger
+// This class is to get around the fact that DEFINE_FUNCTION doesn't like multiple inheritance
+class CTriggerAreaCaptureShim : public CBaseTrigger
+{
+	virtual void AreaTouch(CBaseEntity* pOther) = 0;
+public:
+	void	Touch(CBaseEntity* pOther) { return AreaTouch(pOther); }
+};
+
+DECLARE_AUTO_LIST(ITriggerAreaCaptureAutoList);
+
+class CTriggerAreaCapture : public CTriggerAreaCaptureShim, public ITriggerAreaCaptureAutoList
 {
 	DECLARE_CLASS( CTriggerAreaCapture, CBaseTrigger );
 public:

@@ -9,6 +9,11 @@
 #include "KeyValues.h"
 #include "takedamageinfo.h"
 #include "tf_gamerules.h"
+#if defined( CLIENT_DLL )
+#include "c_team.h"
+#else
+#include "team.h"
+#endif
 
 //-----------------------------------------------------------------------------
 // Teams.
@@ -28,6 +33,22 @@ color32 g_aTeamColors[TF_TEAM_COUNT] =
 	{ 255, 0, 0, 0 },
 	{ 0, 0, 255, 0 }
 };
+
+bool IsTeamName(const char* str)
+{
+	for (int i = 0; i < g_Teams.Size(); ++i)
+	{
+#if defined( CLIENT_DLL )
+		if (FStrEq(str, g_Teams[i]->Get_Name()))
+			return true;
+#else
+		if (FStrEq(str, g_Teams[i]->GetName()))
+			return true;
+#endif
+	}
+
+	return Q_strcasecmp(str, "spectate") == 0;
+}
 
 //-----------------------------------------------------------------------------
 // Classes.
@@ -60,6 +81,31 @@ const char *g_aPlayerClassNames_NonLocalized[] =
 	"Spy",
 	"Engineer"
 };
+
+bool IsPlayerClassName(char const* str)
+{
+	for (int i = 1; i < TF_CLASS_COUNT_ALL; ++i)
+	{
+		TFPlayerClassData_t* data = GetPlayerClassData(i);
+		if (FStrEq(str, data->m_szClassName))
+			return true;
+	}
+
+	return false;
+}
+
+int GetClassIndexFromString(char const* name, int maxClass)
+{	// what's the point of the second argument?
+	for (int i = TF_FIRST_NORMAL_CLASS; i <= maxClass; ++i)
+	{
+		// check length so "demo" matches "demoman", "heavy" matches "heavyweapons" etc.
+		size_t length = strlen(g_aPlayerClassNames_NonLocalized[i]);
+		if (length <= strlen(name) && !Q_strnicmp(g_aPlayerClassNames_NonLocalized[i], name, length))
+			return i;
+	}
+
+	return TF_CLASS_UNDEFINED;
+}
 
 //-----------------------------------------------------------------------------
 // Gametypes.

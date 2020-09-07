@@ -12,6 +12,11 @@
 #include "tf_player_shared.h"
 #include "tf_playerclass.h"
 #include "entity_tfstart.h"
+#include "tf_weapon_medigun.h"
+#include "nav_mesh/tf_nav_area.h"
+#include "Path/NextBotPathFollow.h"
+#include "NextBotUtil.h"
+#include "trigger_area_capture.h"
 
 class CTFPlayer;
 class CTFTeam;
@@ -58,6 +63,26 @@ struct DamagerHistory_t
 };
 #define MAX_DAMAGER_HISTORY 2
 
+class CTFPlayerPathCost : public IPathCost
+{
+public:
+	CTFPlayerPathCost(CTFPlayer* player)
+		: m_pPlayer(player)
+	{
+		m_flStepHeight = 18.0f;
+		m_flMaxJumpHeight = 72.0f;
+		m_flDeathDropHeight = 200.0f;
+	}
+
+	virtual float operator()(CNavArea* area, CNavArea* fromArea, const CNavLadder* ladder, const CFuncElevator* elevator, float length) const;
+
+private:
+	CTFPlayer* m_pPlayer;
+	float m_flStepHeight;
+	float m_flMaxJumpHeight;
+	float m_flDeathDropHeight;
+};
+
 //=============================================================================
 //
 // TF Player
@@ -93,6 +118,17 @@ public:
 	virtual void		CheatImpulseCommands( int iImpulse );
 
 	virtual void		CommitSuicide( bool bExplode = false, bool bForce = false );
+
+	virtual CTFNavArea* GetLastKnownArea(void) const override;
+	virtual void		OnNavAreaChanged(CNavArea* enteredArea, CNavArea* leftArea);
+
+	CTriggerAreaCapture* GetControlPointStandingOn(void);
+
+	bool				IsCapturingPoint(void);
+
+	const Vector& EstimateProjectileImpactPosition(CTFWeaponBaseGun* weapon);
+	const Vector& EstimateProjectileImpactPosition(float pitch, float yaw, float speed);
+	const Vector& EstimateStickybombProjectileImpactPosition(float pitch, float yaw, float charge);
 
 	// Combats
 	virtual void		TraceAttack(const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
@@ -136,6 +172,8 @@ public:
 	void				DropFlag( void );
 	void				TFWeaponRemove( int iWeaponID );
 	bool				TFWeaponDrop( CTFWeaponBase *pWeapon, bool bThrowForward );
+
+	CBaseObject* GetObjectOfType(int iType);
 
 	// Class.
 	CTFPlayerClass		*GetPlayerClass( void ) 					{ return &m_PlayerClass; }
@@ -370,6 +408,8 @@ public:
 	int					GetMaxSentryKills() { return m_iMaxSentryKills; }
 
 	CNetworkVar( bool, m_iSpawnCounter );
+
+	IntervalTimer m_lastCalledMedic;
 	
 	void				CheckForIdle( void );
 	void				PickWelcomeObserverPoint();
@@ -379,8 +419,14 @@ public:
 
 	virtual bool			WantsLagCompensationOnEntity( const CBasePlayer	*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 
+	float				MedicGetChargeLevel(void);
+	CBaseEntity*		MedicGetHealTarget(void);
+
 	CTFWeaponBase		*Weapon_OwnsThisID( int iWeaponID );
 	CTFWeaponBase		*Weapon_GetWeaponByType( int iType );
+
+	void				HandleCommand_JoinTeam(const char* pTeamName);
+	void				HandleCommand_JoinClass(const char* pClassName);
 
 private:
 
@@ -403,8 +449,6 @@ private:
 	bool				m_bInitTaunt;
 
 	// Client commands.
-	void				HandleCommand_JoinTeam( const char *pTeamName );
-	void				HandleCommand_JoinClass( const char *pClassName );
 	void				HandleCommand_JoinTeam_NoMenus( const char *pTeamName );
 
 	// Bots.

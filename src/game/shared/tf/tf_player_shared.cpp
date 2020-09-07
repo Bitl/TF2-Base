@@ -1622,6 +1622,17 @@ void CTFPlayerShared::SetInvulnerable( bool bState, bool bInstant )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+EHANDLE	CTFPlayerShared::GetHealerByIndex(int index)
+{
+	if (m_aHealers.IsValidIndex(index))
+		return m_aHealers[index].pPlayer;
+
+	return NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 int	CTFPlayerShared::FindHealerIndex( CTFPlayer *pPlayer )
 {
 	for ( int i = 0; i < m_aHealers.Count(); i++ )
@@ -1643,6 +1654,17 @@ EHANDLE CTFPlayerShared::GetFirstHealer()
 		return m_aHealers.Head().pPlayer;
 
 	return NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CTFPlayerShared::HealerIsDispenser(int index) const
+{
+	if (!m_aHealers.IsValidIndex(index))
+		return false;
+
+	return m_aHealers[index].bDispenserHeal;
 }
 #endif
 
@@ -2126,8 +2148,13 @@ void CTFPlayer::TeamFortress_SetSpeed()
 		}
 	}
 
+	if (IsBot())
+	{
+		maxfbspeed *= 0.5;
+	}
+
 	// Set the speed
-	SetMaxSpeed( maxfbspeed );
+	SetMaxSpeed( maxfbspeed);
 }
 
 //-----------------------------------------------------------------------------
@@ -2482,6 +2509,42 @@ const Vector& CTFPlayer::GetClassEyeHeight( void )
 	return g_TFClassViewVectors[pClass->GetClassIndex()];
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CTFPlayer::MedicGetChargeLevel(void)
+{
+	if (IsPlayerClass(TF_CLASS_MEDIC))
+	{
+		CTFWeaponBase* pWpn = (CTFWeaponBase*)Weapon_OwnsThisID(TF_WEAPON_MEDIGUN);
+
+		if (pWpn == NULL)
+			return 0;
+
+		CWeaponMedigun* pWeapon = dynamic_cast <CWeaponMedigun*>(pWpn);
+
+		if (pWeapon)
+			return pWeapon->GetChargeLevel();
+	}
+
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CBaseEntity* CTFPlayer::MedicGetHealTarget(void)
+{
+	if (IsPlayerClass(TF_CLASS_MEDIC))
+	{
+		CWeaponMedigun* pWeapon = dynamic_cast <CWeaponMedigun*>(GetActiveWeapon());
+
+		if (pWeapon)
+			return pWeapon->GetHealTarget();
+	}
+
+	return NULL;
+}
 
 CTFWeaponBase *CTFPlayer::Weapon_OwnsThisID( int iWeaponID )
 {

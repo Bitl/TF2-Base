@@ -1,11 +1,16 @@
-Team Fortress 2
+Team Fortress 2 Base w/ Bots
 =====
 
-[![Build status](https://ci.appveyor.com/api/projects/status/1qx349wcxa5eenjk/branch/master?svg=true)](https://ci.appveyor.com/project/NicknineTheEagle/tf2-base/branch/master)
+This is a fork of the TF2-Base, a repo which provided the old Team Fortress 2 source code from late January 2008 ported to Source Engine 2013.
+**This repository ports over the reverse-engineered bot code from Team Fortress 2 Vintage 1.0 (https://github.com/TF2V/TF2Vintage/tree/1.0). As a resut, this utilizes the Valve NextBot system, also found here https://github.com/GamerDude27/NextBot** No other features were implemented.
 
-This is the old Team Fortress 2 source code from late January 2008 ported to Source Engine 2013. This ensures the game has all the latest engine features and security fixes. No new features will be added to the code. No bugs will be fixed with the exception of crashes and bugs that were not in the original 2008 build of the game.
+Nav files from these sources:
 
-You can find a link to the playable build on the latest release's page: https://github.com/NicknineTheEagle/TF2-Base/releases/latest
+tf2_misc_dir.vpk
+https://fladnag.net/downloads/jeux/serveur/tf2/maps/
+https://gamebanana.com/gamefiles/3023
+
+If you are looking for the original TF2-Base, here is a link to the original repository: https://github.com/NicknineTheEagle/TF2-Base
 
 ## Dependencies
 
@@ -62,3 +67,5 @@ NOTE: If you're on Linux or Mac, Steam client currently has a bug where it doesn
    * scenefilecache_srv.so -> scenefilecache.so
    
 5. Put your compiled binaries into "bin" directory.
+
+**Note: This and the original version of this repository cannot be used as the basis for releasing a mod on Steam due to the use of leaked code. Read this article for more information: https://www.eurogamer.net/articles/2018-10-25-team-fortress-2008-mod-transports-tf2-back-in-time-and-its-coming-to-steam**

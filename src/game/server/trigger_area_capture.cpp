@@ -17,10 +17,12 @@ extern ConVar mp_capstyle;
 extern ConVar mp_blockstyle;
 extern ConVar mp_capdeteriorate_time;
 
+IMPLEMENT_AUTO_LIST(ITriggerAreaCaptureAutoList);
+
 BEGIN_DATADESC(CTriggerAreaCapture)
 
 	// Touch functions
-	DEFINE_FUNCTION( AreaTouch ),
+	DEFINE_FUNCTION(CTriggerAreaCaptureShim::Touch ),
 
 	// Think functions
 	DEFINE_THINKFUNC( CaptureThink ),
@@ -204,46 +206,44 @@ void CTriggerAreaCapture::EndTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CTriggerAreaCapture::AreaTouch( CBaseEntity *pOther )
+void CTriggerAreaCapture::AreaTouch(CBaseEntity* pOther)
 {
-	if ( !IsActive() )
+	if (!IsActive())
 		return;
-	if ( !PassesTriggerFilters(pOther) )
+	if (!PassesTriggerFilters(pOther))
 		return;
 
 	// Don't cap areas unless the round is running
-	if ( !TeamplayGameRules()->PointsMayBeCaptured() )
+	if (!TeamplayGameRules()->PointsMayBeCaptured())
 		return;
 
-	Assert( m_iAreaIndex != -1 );
-
 	// dont touch for non-alive or non-players
-	if( !pOther->IsPlayer() || !pOther->IsAlive() )
+	if (!pOther->IsPlayer() || !pOther->IsAlive())
 		return;
 
 	// make sure this point is in the round being played (if we're playing one)
-	CTeamControlPointMaster *pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;
-	if ( pMaster && m_hPoint )
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;
+	if (pMaster && m_hPoint)
 	{
-		if ( !pMaster->PointCanBeCapped( m_hPoint ) )
+		if (!pMaster->IsInRound(m_hPoint))
 		{
 			return;
 		}
 	}
 
-	if ( m_hPoint )
+	if (m_hPoint)
 	{
 		m_nOwningTeam = m_hPoint->GetOwner();
 	}
 
-	CBaseMultiplayerPlayer *pPlayer = ToBaseMultiplayerPlayer(pOther);
-	Assert( pPlayer );
+	CBaseMultiplayerPlayer* pPlayer = ToBaseMultiplayerPlayer(pOther);
+	Assert(pPlayer);
 
-	if ( pPlayer->GetTeamNumber() != m_nOwningTeam )
+	if (pPlayer->GetTeamNumber() != m_nOwningTeam)
 	{
-		if ( m_TeamData[ pPlayer->GetTeamNumber() ].bCanCap )
+		if (m_TeamData[pPlayer->GetTeamNumber()].bCanCap)
 		{
-			DisplayCapHintTo( pPlayer );
+			DisplayCapHintTo(pPlayer);
 		}
 	}
 }
@@ -260,10 +260,10 @@ void CTriggerAreaCapture::CaptureThink( void )
 	SetNextThink( gpGlobals->curtime + AREA_THINK_TIME );
 
 	// make sure this point is in the round being played (if we're playing one)
-	CTeamControlPointMaster *pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;
-	if ( pMaster && m_hPoint )
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters.Count() ? g_hControlPointMasters[0] : NULL;
+	if (pMaster && m_hPoint)
 	{
-		if ( !pMaster->PointCanBeCapped( m_hPoint ) )
+		if (!pMaster->IsInRound(m_hPoint))
 		{
 			return;
 		}

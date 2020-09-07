@@ -18,6 +18,7 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#include <NextBot\NextBotManager.h>
 
 extern bool IsInCommentaryMode();
 
@@ -173,6 +174,8 @@ void CObjectSentrygun::Spawn()
 	m_flLastAttackedTime = 0;
 
 	m_flHeavyBulletResist = SENTRYGUN_MINIGUN_RESIST_LVL_1;
+
+	m_fireTimer.Start();
 
 	BaseClass::Spawn();
 
@@ -650,10 +653,12 @@ bool CObjectSentrygun::FindTarget()
 	// If we have an enemy get his minimum distance to check against.
 	Vector vecSegment;
 	Vector vecTargetCenter;
-	float flMinDist2 = 1100.0f * 1100.0f;
+	float flMinDist2 = Square(SENTRYGUN_BASE_RANGE);
 	CBaseEntity *pTargetCurrent = NULL;
 	CBaseEntity *pTargetOld = m_hEnemy.Get();
 	float flOldTargetDist2 = FLT_MAX;
+	CUtlVector<INextBot*> bots;
+	TheNextBots().CollectAllBots(&bots);
 
 	// Sentries will try to target players first, then objects.  However, if the enemy held was an object it will continue
 	// to try and attack it first.
@@ -691,6 +696,33 @@ bool CObjectSentrygun::FindTarget()
 		{
 			flMinDist2 = flDist2;
 			pTargetCurrent = pTargetPlayer;
+		}
+	}
+
+	for (int iBot = 0; iBot < bots.Count(); ++iBot)
+	{
+		CBaseCombatCharacter* pTargetActor = bots[iBot]->GetEntity();
+		if (pTargetActor == NULL)
+			continue;
+
+		VectorSubtract(pTargetActor->WorldSpaceCenter(), vecSentryOrigin, vecSegment);
+		float flDist2 = vecSegment.LengthSqr();
+
+		// Store the current target distance if we come across it
+		if (pTargetActor == pTargetOld)
+		{
+			flOldTargetDist2 = flDist2;
+		}
+
+		// Check to see if the target is closer than the already validated target.
+		if (flDist2 > flMinDist2)
+			continue;
+
+		// It is closer, check to see if the target is valid.
+		if (ValidTargetBot(pTargetActor))
+		{
+			flMinDist2 = flDist2;
+			pTargetCurrent = pTargetActor;
 		}
 	}
 
@@ -787,6 +819,40 @@ bool CObjectSentrygun::ValidTargetObject( CBaseObject *pObject, const Vector &ve
 
 	// Ray trace.
 	return FVisible( pObject, MASK_SHOT | CONTENTS_GRATE );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+bool CObjectSentrygun::ValidTargetBot(CBaseCombatCharacter* pActor)
+{
+	// Players should already be checked, ignore
+	if (pActor->IsPlayer())
+		return false;
+
+	// Ignore the dead
+	if (!pActor->IsAlive())
+		return false;
+
+	// Make sure it's an enemy
+	if (InSameTeam(pActor))
+		return false;
+
+	// Make sure we can even hit it
+	if (!pActor->IsSolid())
+		return false;
+
+	// Ray trace with respect to parents
+	CBaseEntity* pBlocker = nullptr;
+	if (!FVisible(pActor, MASK_SHOT | CONTENTS_GRATE, &pBlocker))
+	{
+		if (pActor->GetMoveParent() == pBlocker)
+			return true;
+
+		return false;
+	}
+
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1053,6 +1119,8 @@ bool CObjectSentrygun::Fire()
 			break;
 		}
 
+		m_fireTimer.Reset();
+
 		if ( !tf_sentrygun_ammocheat.GetBool() )
 		{
 			m_iAmmoShells--;
@@ -1075,6 +1143,14 @@ bool CObjectSentrygun::Fire()
 	}
 
 	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CObjectSentrygun::GetTimeSinceLastFired(void) const
+{
+	return m_fireTimer.GetElapsedTime();
 }
 
 //-----------------------------------------------------------------------------

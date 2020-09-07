@@ -63,6 +63,10 @@ public:
 
 	int				GetUpgradeLevel( void ) { return m_iUpgradeLevel; }
 
+	const QAngle& GetTurretAngles(void) const { return m_vecCurAngles; }
+
+	float			GetTimeSinceLastFired(void) const;
+
 private:
 
 	// Main think
@@ -77,6 +81,7 @@ private:
 	bool FindTarget( void );
 	bool ValidTargetPlayer( CTFPlayer *pPlayer, const Vector &vecStart, const Vector &vecEnd );
 	bool ValidTargetObject( CBaseObject *pObject, const Vector &vecStart, const Vector &vecEnd );
+	bool ValidTargetBot(CBaseCombatCharacter* pActor);
 	void FoundTarget( CBaseEntity *pTarget, const Vector &vecSoundCenter );
 	bool FInViewCone ( CBaseEntity *pEntity );
 	int Range( CBaseEntity *pTarget );
@@ -141,6 +146,8 @@ private:
 	float m_flHeavyBulletResist;
 
 	int m_iPlacementBodygroup;
+
+	IntervalTimer m_fireTimer;
 
 	DECLARE_DATADESC();
 };

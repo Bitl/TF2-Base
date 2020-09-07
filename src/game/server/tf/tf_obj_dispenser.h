@@ -46,6 +46,7 @@ public:
 
 	virtual void StartTouch( CBaseEntity *pOther );
 	virtual void EndTouch( CBaseEntity *pOther );
+	virtual int GetAvailableMetal(void) const { return m_iAmmoMetal; }
 
 	virtual int	ObjectCaps( void ) { return (BaseClass::ObjectCaps() | FCAP_IMPULSE_USE); }
 

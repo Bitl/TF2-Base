@@ -158,6 +158,7 @@ public:
 	CHandle<CBaseObject> m_hObj2;
 };
 
+IMPLEMENT_AUTO_LIST(IBaseObjectAutoList)
 
 //-----------------------------------------------------------------------------
 // Purpose: 

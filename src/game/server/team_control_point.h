@@ -82,6 +82,7 @@ public:
 
 	int			PointValue( void );
 
+	bool		HasBeenContested(void) const;				// return true if this point has ever been contested, false if the enemy has never contested this point yet
 	float		LastContestedAt( void );
 	void		SetLastContestedAt( float flTime );
 
@@ -99,10 +100,11 @@ public:
 
 	virtual void StopLoopingSounds( void );
 
+	float		GetTeamCapPercentage(int iTeam);
+
 private:
 	void		SendCapString( int iCapTeam, int iNumCappers, int *pCappingPlayers );
 	void		InternalSetOwner( int iCapTeam, bool bMakeSound = true, int iNumCappers = 0, int *iCappingPlayers = NULL );
-	float		GetTeamCapPercentage( int iTeam );
 
 	int			m_iTeam;			
 	int			m_iDefaultOwner;			// Team that initially owns the cap point

@@ -83,6 +83,7 @@ ConVar tf_birthday( "tf_birthday", "0", FCVAR_NOTIFY | FCVAR_REPLICATED );
 
 #ifdef GAME_DLL
 // TF overrides the default value of this convar
+ConVar mp_humans_must_join_team("mp_humans_must_join_team", "any", FCVAR_GAMEDLL | FCVAR_REPLICATED, "Restricts human players to a single team {any, blue, red, spectator}");
 ConVar mp_waitingforplayers_time( "mp_waitingforplayers_time", (IsX360()?"15":"30"), FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY, "WaitingForPlayers time length in seconds" );
 ConVar tf_gravetalk( "tf_gravetalk", "1", FCVAR_NOTIFY, "Allows living players to hear dead players using text/voice chat." );
 ConVar tf_spectalk( "tf_spectalk", "1", FCVAR_NOTIFY, "Allows living players to hear spectators using text chat." );
@@ -555,6 +556,27 @@ bool CTFGameRules::AllowDamage( CBaseEntity *pVictim, const CTakeDamageInfo &inf
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+bool CTFGameRules::CanBotChooseClass(CBasePlayer* pBot, int iDesiredClassIndex)
+{
+	// TODO: Implement CTFBotRoster entity
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CTFGameRules::CanBotChangeClass(CBasePlayer* pBot)
+{
+	CTFPlayer* pPlayer = ToTFPlayer(pBot);
+	if (!pPlayer || pPlayer->GetPlayerClass()->GetClassIndex() == TF_CLASS_UNDEFINED)
+		return true;
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CTFGameRules::SetTeamGoalString( int iTeam, const char *pszGoal )
 {
 	if ( iTeam == TF_TEAM_RED )
@@ -682,14 +704,29 @@ void CTFGameRules::SetupOnRoundStart( void )
 		m_iNumCaps[i] = 0;
 	}
 
+	m_hAmmoEntities.RemoveAll();
+	m_hHealthEntities.RemoveAll();
+
 	// Let all entities know that a new round is starting
-	CBaseEntity *pEnt = gEntList.FirstEnt();
-	while( pEnt )
+	CBaseEntity* pEnt = gEntList.FirstEnt();
+	while (pEnt)
 	{
 		variant_t emptyVariant;
-		pEnt->AcceptInput( "RoundSpawn", NULL, NULL, emptyVariant, 0 );
+		pEnt->AcceptInput("RoundSpawn", NULL, NULL, emptyVariant, 0);
 
-		pEnt = gEntList.NextEnt( pEnt );
+		if (pEnt->ClassMatches("func_regenerate") || pEnt->ClassMatches("item_ammopack*"))
+		{
+			EHANDLE hndl(pEnt);
+			m_hAmmoEntities.AddToTail(hndl);
+		}
+
+		if (pEnt->ClassMatches("func_regenerate") || pEnt->ClassMatches("item_healthkit*"))
+		{
+			EHANDLE hndl(pEnt);
+			m_hHealthEntities.AddToTail(hndl);
+		}
+
+		pEnt = gEntList.NextEnt(pEnt);
 	}
 
 	// All entities have been spawned, now activate them
@@ -1568,6 +1605,9 @@ VoiceCommandMenuItem_t *CTFGameRules::VoiceCommand( CBaseMultiplayerPlayer *pPla
 			{
 				pTFPlayer->DoAnimationEvent( PLAYERANIMEVENT_VOICE_COMMAND_GESTURE, iActivity );
 			}
+
+			if (iMenu == 0 && iItem == 0)
+				pTFPlayer->m_lastCalledMedic.Start();
 		}
 	}
 
@@ -2790,6 +2830,83 @@ bool CTFGameRules::PlayerMayBlockPoint( CBasePlayer *pPlayer, int iPointIndex, c
 	return false;
 }
 
+#if defined( GAME_DLL )
+//-----------------------------------------------------------------------------
+// Purpose: Fills a vector with valid points that the player can capture right now
+// Input:	pPlayer - The player that wants to capture
+//			controlPointVector - A vector to fill with results
+//-----------------------------------------------------------------------------
+void CTFGameRules::CollectCapturePoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+{
+	Assert(ObjectiveResource());
+	if (!controlPointVector || !pPlayer)
+		return;
+
+	controlPointVector->RemoveAll();
+
+	if (g_hControlPointMasters.IsEmpty())
+		return;
+
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters[0];
+	if (!pMaster || !pMaster->IsActive())
+		return;
+
+	if (pMaster->GetNumPoints() == 1)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(0);
+		if (pPoint && pPoint->GetPointIndex() == 0)
+			controlPointVector->AddToTail(pPoint);
+
+		return;
+	}
+
+	for (int i = 0; i < pMaster->GetNumPoints(); ++i)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
+		if (pMaster->IsInRound(pPoint) &&
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) != pPlayer->GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), pPlayer->GetTeamNumber()) &&
+			TeamMayCapturePoint(pPlayer->GetTeamNumber(), pPoint->GetPointIndex()))
+		{
+			controlPointVector->AddToTail(pPoint);
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Fills a vector with valid points that the player needs to defend from capture
+// Input:	pPlayer - The player that wants to defend
+//			controlPointVector - A vector to fill with results
+//-----------------------------------------------------------------------------
+void CTFGameRules::CollectDefendPoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+{
+	Assert(ObjectiveResource());
+	if (!controlPointVector || !pPlayer)
+		return;
+
+	controlPointVector->RemoveAll();
+
+	if (g_hControlPointMasters.IsEmpty())
+		return;
+
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters[0];
+	if (!pMaster || !pMaster->IsActive())
+		return;
+
+	for (int i = 0; i < pMaster->GetNumPoints(); ++i)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
+		if (pMaster->IsInRound(pPoint) &&
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) == pPlayer->GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), GetEnemyTeam(pPlayer)) &&
+			TeamMayCapturePoint(GetEnemyTeam(pPlayer), pPoint->GetPointIndex()))
+		{
+			controlPointVector->AddToTail(pPoint);
+		}
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: Calculates score for player
 //-----------------------------------------------------------------------------
@@ -3100,6 +3217,19 @@ const char *CTFGameRules::GetTeamGoalString( int iTeam )
 	if ( iTeam == TF_TEAM_BLUE )
 		return m_pszTeamGoalStringBlue.Get();
 	return NULL;
+}
+
+int CTFGameRules::GetAssignedHumanTeam(void) const
+{
+#ifdef GAME_DLL
+	if (FStrEq(mp_humans_must_join_team.GetString(), "blue"))
+		return TF_TEAM_BLUE;
+	else if (FStrEq(mp_humans_must_join_team.GetString(), "red"))
+		return TF_TEAM_RED;
+	else if (FStrEq(mp_humans_must_join_team.GetString(), "any"))
+		return TEAM_ANY;
+#endif
+	return TEAM_ANY;
 }
 
 #ifdef GAME_DLL
