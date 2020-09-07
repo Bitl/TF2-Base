@@ -19,21 +19,21 @@
 
 class C_TFObjectiveResource : public C_BaseTeamObjectiveResource
 {
-	DECLARE_CLASS( C_TFObjectiveResource, C_BaseTeamObjectiveResource );
+	DECLARE_CLASS(C_TFObjectiveResource, C_BaseTeamObjectiveResource);
 public:
 	DECLARE_CLIENTCLASS();
 
-					C_TFObjectiveResource();
+	C_TFObjectiveResource();
 	virtual			~C_TFObjectiveResource();
 
-	const char		*GetGameSpecificCPCappingSwipe( int index, int iCappingTeam );
-	const char		*GetGameSpecificCPBarFG( int index, int iOwningTeam );
-	const char		*GetGameSpecificCPBarBG( int index, int iCappingTeam );
-	void			SetCappingTeam( int index, int team );
+	const char* GetGameSpecificCPCappingSwipe(int index, int iCappingTeam);
+	const char* GetGameSpecificCPBarFG(int index, int iOwningTeam);
+	const char* GetGameSpecificCPBarBG(int index, int iCappingTeam);
+	void			SetCappingTeam(int index, int team);
 
 };
 
-inline C_TFObjectiveResource *TFObjectiveResource()
+inline C_TFObjectiveResource* TFObjectiveResource()
 {
 	return static_cast<C_TFObjectiveResource*>(g_pObjectiveResource);
 }

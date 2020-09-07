@@ -6,13 +6,14 @@
 //=============================================================================//
 #include "cbase.h"
 #include "clientmode_tf.h"
+#include "tf_gamerules.h"
 #include "c_tf_objective_resource.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 
-IMPLEMENT_CLIENTCLASS_DT( C_TFObjectiveResource, DT_TFObjectiveResource, CTFObjectiveResource)
+IMPLEMENT_CLIENTCLASS_DT(C_TFObjectiveResource, DT_TFObjectiveResource, CTFObjectiveResource)
 
 END_RECV_TABLE()
 
@@ -21,8 +22,8 @@ END_RECV_TABLE()
 //-----------------------------------------------------------------------------
 C_TFObjectiveResource::C_TFObjectiveResource()
 {
-	PrecacheMaterial( "sprites/obj_icons/icon_obj_cap_blu" );
-	PrecacheMaterial( "sprites/obj_icons/icon_obj_cap_red" );
+	PrecacheMaterial("sprites/obj_icons/icon_obj_cap_blu");
+	PrecacheMaterial("sprites/obj_icons/icon_obj_cap_red");
 }
 
 //-----------------------------------------------------------------------------
@@ -35,13 +36,24 @@ C_TFObjectiveResource::~C_TFObjectiveResource()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-const char *C_TFObjectiveResource::GetGameSpecificCPCappingSwipe( int index, int iCappingTeam )
+const char* C_TFObjectiveResource::GetGameSpecificCPCappingSwipe(int index, int iCappingTeam)
 {
-	Assert( index < m_iNumControlPoints );
-	Assert( iCappingTeam != TEAM_UNASSIGNED );
+	Assert(index < m_iNumControlPoints);
+	Assert(iCappingTeam != TEAM_UNASSIGNED);
 
-	if ( iCappingTeam == TF_TEAM_RED )
-		return "sprites/obj_icons/icon_obj_cap_red";	
+	switch (iCappingTeam)
+	{
+	case TF_TEAM_RED:
+		return "sprites/obj_icons/icon_obj_cap_red";
+		break;
+	case TF_TEAM_BLUE:
+		return "sprites/obj_icons/icon_obj_cap_blu";
+		break;
+	default:
+		return "sprites/obj_icons/icon_obj_cap_blu";
+		break;
+	}
+
 
 	return "sprites/obj_icons/icon_obj_cap_blu";
 }
@@ -49,52 +61,69 @@ const char *C_TFObjectiveResource::GetGameSpecificCPCappingSwipe( int index, int
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-const char *C_TFObjectiveResource::GetGameSpecificCPBarFG( int index, int iOwningTeam )
+const char* C_TFObjectiveResource::GetGameSpecificCPBarFG(int index, int iOwningTeam)
 {
-	Assert( index < m_iNumControlPoints );
+	Assert(index < m_iNumControlPoints);
 
-	if ( iOwningTeam == TF_TEAM_RED )
+	switch (iOwningTeam)
+	{
+	case TF_TEAM_RED:
 		return "progress_bar_red";
-
-	if ( iOwningTeam == TF_TEAM_BLUE )
+		break;
+	case TF_TEAM_BLUE:
 		return "progress_bar_blu";
-
+		break;
+	default:
+		return "progress_bar";
+		break;
+	}
 	return "progress_bar";
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-const char *C_TFObjectiveResource::GetGameSpecificCPBarBG( int index, int iCappingTeam )
+const char* C_TFObjectiveResource::GetGameSpecificCPBarBG(int index, int iCappingTeam)
 {
-	Assert( index < m_iNumControlPoints );
-	Assert( iCappingTeam != TEAM_UNASSIGNED );
+	Assert(index < m_iNumControlPoints);
+	Assert(iCappingTeam != TEAM_UNASSIGNED);
 
-	if ( iCappingTeam == TF_TEAM_RED )
+	switch (iCappingTeam)
+	{
+	case TF_TEAM_RED:
 		return "progress_bar_red";
+		break;
+	case TF_TEAM_BLUE:
+		return "progress_bar_blu";
+		break;
+	default:
+		return "progress_bar";
+		break;
+	}
 
 	return "progress_bar_blu";
 }
 
-void C_TFObjectiveResource::SetCappingTeam( int index, int team )
+void C_TFObjectiveResource::SetCappingTeam(int index, int team)
 {
 	//Display warning that someone is capping our point.
 	//Only do this at the start of a cap and if WE own the point.
 	//Also don't warn on a point that will do a "Last Point cap" warning.
-	if ( GetNumControlPoints() > 0 && ShouldWarnOnCap( index ) == false && GetCPCapPercentage( index ) == 0.0f && team != TEAM_UNASSIGNED && GetOwningTeam( index ) != TEAM_UNASSIGNED )
+	//Don't play the alert for payload
+	if (GetNumControlPoints() > 0 && GetCapWarningLevel(index) != index && GetCPCapPercentage(index) == 0.0f && team != TEAM_UNASSIGNED && GetOwningTeam(index) != TEAM_UNASSIGNED)
 	{
-		C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
-		if ( pLocalPlayer )
+		C_BasePlayer* pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+		if (pLocalPlayer)
 		{
 			int iLocalTeam = pLocalPlayer->GetTeamNumber();
 
-			if ( iLocalTeam != team )
+			if (iLocalTeam != team)
 			{
 				CLocalPlayerFilter filter;
-				C_BaseEntity::EmitSound( filter, -1, "Announcer.ControlPointContested" );
+				C_BaseEntity::EmitSound(filter, -1, "Announcer.ControlPointContested");
 			}
 		}
 	}
 
-	BaseClass::SetCappingTeam( index, team );
+	BaseClass::SetCappingTeam(index, team);
 }
