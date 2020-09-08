@@ -23,7 +23,6 @@
 #include "in_buttons.h"
 #include "movehelper_server.h"
 #include "tf_playerclass_shared.h"
-#include "tf_weapon_builder.h"
 #include "datacache/imdlcache.h"
 
 void ClientPutInServer( edict_t *pEdict, const char *playername );
@@ -35,17 +34,13 @@ ConVar bot_forceattackon( "bot_forceattackon", "1", 0, "When firing, don't tap f
 ConVar bot_flipout( "bot_flipout", "0", 0, "When on, all bots fire their guns." );
 ConVar bot_defend( "bot_defend", "0", 0, "Set to a team number, and that team will all keep their combat shields raised." );
 ConVar bot_changeclass( "bot_changeclass", "0", 0, "Force all bots to change to the specified class." );
-ConVar bot_dontmove( "bot_dontmove", "1", FCVAR_CHEAT );
+ConVar bot_dontmove( "bot_dontmove", "0", FCVAR_CHEAT );
 ConVar bot_saveme( "bot_saveme", "0", FCVAR_CHEAT );
 static ConVar bot_mimic( "bot_mimic", "0", 0, "Bot uses usercmd of player by index." );
 static ConVar bot_mimic_yaw_offset( "bot_mimic_yaw_offset", "180", 0, "Offsets the bot yaw." );
 ConVar bot_selectweaponslot( "bot_selectweaponslot", "-1", FCVAR_CHEAT, "set to weapon slot that bot should switch to." );
 ConVar bot_randomnames( "bot_randomnames", "0", FCVAR_CHEAT );
 ConVar bot_jump( "bot_jump", "0", FCVAR_CHEAT, "Force all bots to repeatedly jump." );
-ConVar bot_forward( "bot_forward", "0", FCVAR_CHEAT, "Force all bots to walk forward" );
-ConVar bot_backward( "bot_backward", "0", FCVAR_CHEAT, "Force all bots to walk backward" );
-ConVar bot_strafeleft( "bot_strafeleft", "0", FCVAR_CHEAT, "Force all bots to strafe left" );
-ConVar bot_straferight( "bot_straferight", "0", FCVAR_CHEAT, "Force all bots to strafe right" );
 
 static int BotNumber = 1;
 static int g_iNextBotTeam = -1;
@@ -91,15 +86,17 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam, int iClass, const char *ps
 	}
 	else if ( bot_randomnames.GetBool() )
 	{
-		switch( RandomInt(0,5) )
+		static const char *szBotNames[] =
 		{
-		case 0: Q_snprintf( botname, sizeof( botname ), "Bot", BotNumber ); break;
-		case 1: Q_snprintf( botname, sizeof( botname ), "This is a medium Bot", BotNumber ); break;
-		case 2: Q_snprintf( botname, sizeof( botname ), "This is a super long bot name that is too long for the game to allow", BotNumber ); break;
-		case 3: Q_snprintf( botname, sizeof( botname ), "Another bot", BotNumber ); break;
-		case 4: Q_snprintf( botname, sizeof( botname ), "Yet more Bot names, medium sized", BotNumber ); break;
-		default: Q_snprintf( botname, sizeof( botname ), "B", BotNumber ); break;
-		}
+			"Bot",
+			"This is a medium Bot",
+			"This is a super long bot name that is too long for the game to allow",
+			"Another bot",
+			"Yet more Bot names, medium sized",
+			"B",
+		};
+
+		Q_strncpy( botname, szBotNames[RandomInt( 0, ARRAYSIZE( szBotNames ) - 1)], sizeof( botname ) );
 	}
 	else
 	{
@@ -118,6 +115,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam, int iClass, const char *ps
 	CTFPlayer *pPlayer = ((CTFPlayer *)CBaseEntity::Instance( pEdict ));
 	pPlayer->ClearFlags();
 	pPlayer->AddFlag( FL_CLIENT | FL_FAKECLIENT );
+
 	if ( bFrozen )
 		pPlayer->AddEFlags( EFL_BOT_FROZEN );
 
@@ -160,11 +158,11 @@ CON_COMMAND_F( bot, "Add a bot.", FCVAR_CHEAT )
 	while ( --count >= 0 )
 	{
 		// What class do they want?
-		int iClass = RandomInt( TF_CLASS_SCOUT, TF_LAST_NORMAL_CLASS );
+		int iClass = RandomInt( 1, TF_CLASS_COUNT-1 );
 		char const *pVal = args.FindArg( "-class" );
 		if ( pVal )
 		{
-			for ( int i=1; i <= TF_CLASS_ENGINEER; i++ )
+			for ( int i=1; i < TF_CLASS_COUNT_ALL; i++ )
 			{
 				if ( stricmp( GetPlayerClassData( i )->m_szClassName, pVal ) == 0 )
 				{
@@ -176,22 +174,18 @@ CON_COMMAND_F( bot, "Add a bot.", FCVAR_CHEAT )
 		if (args.FindArg( "-all" ))
 			iClass = 9 - count ;
 
-		int iTeam = TEAM_UNASSIGNED;
+		int iTeam = TF_TEAM_BLUE;
 		pVal = args.FindArg( "-team" );
 		if ( pVal )
 		{
 			if ( stricmp( pVal, "red" ) == 0 )
 				iTeam = TF_TEAM_RED;
-			else if ( stricmp( pVal, "blue" ) == 0 )
-				iTeam = TF_TEAM_BLUE;
 			else if ( stricmp( pVal, "spectator" ) == 0 )
 				iTeam = TEAM_SPECTATOR;
 			else if ( stricmp( pVal, "random" ) == 0 )
-			{
-				iTeam = RandomInt(0, 100) < 50 ? TF_TEAM_BLUE : TF_TEAM_RED;
-			}
+				iTeam = RandomInt( 0, 100 ) < 50 ? TF_TEAM_BLUE : TF_TEAM_RED;
 			else
-				iTeam = TEAM_UNASSIGNED;
+				iTeam = TF_TEAM_BLUE;
 		}
 
 		char const *pName = args.FindArg( "-name" );
@@ -209,12 +203,11 @@ void Bot_RunAll( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CTFPlayer *pPlayer = ToTFPlayer( UTIL_PlayerByIndex( i ) );
-		if ( !pPlayer || !pPlayer->IsConnected() )
-			continue;
-		if ( pPlayer->MyNextBotPointer() != NULL )
-			continue;
 
-		Bot_Think( pPlayer );
+		if ( pPlayer && (pPlayer->GetFlags() & FL_FAKECLIENT) )
+		{
+			Bot_Think( pPlayer );
+		}
 	}
 }
 
@@ -257,6 +250,7 @@ static void RunPlayerMove( CTFPlayer *fakeclient, const QAngle& viewangles, floa
 		return;
 
 	CUserCmd cmd;
+
 	// Store off the globals.. they're gonna get whacked
 	float flOldFrametime = gpGlobals->frametime;
 	float flOldCurtime = gpGlobals->curtime;
@@ -277,14 +271,12 @@ static void RunPlayerMove( CTFPlayer *fakeclient, const QAngle& viewangles, floa
 		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
 
-	/*
 	if ( bot_dontmove.GetBool() )
 	{
 		cmd.forwardmove = 0;
 		cmd.sidemove = 0;
 		cmd.upmove = 0;
 	}
-	*/
 
 	MoveHelperServer()->SetHost( fakeclient );
 	fakeclient->PlayerRunCommand( &cmd, MoveHelperServer() );
@@ -338,12 +330,12 @@ void Bot_Think( CTFPlayer *pBot )
 			pszTeam = "spectator";
 			break;
 		default:
-			pszTeam = "auto";
+			Assert( false );
 			break;
 		}
 		pBot->HandleCommand_JoinTeam( pszTeam );
 	}
-	else if ( pBot->GetTeamNumber() != TEAM_UNASSIGNED && pBot->IsPlayerClass( TF_CLASS_UNDEFINED ) )
+	else if ( pBot->GetTeamNumber() != TEAM_UNASSIGNED && pBot->GetPlayerClass()->IsClass( TF_CLASS_UNDEFINED ) )
 	{
 		// If they're on a team but haven't picked a class, choose a random class..
 		pBot->HandleCommand_JoinClass( GetPlayerClassData( botdata->m_WantedClass )->m_szClassName );
@@ -360,9 +352,10 @@ void Bot_Think( CTFPlayer *pBot )
 			bot_saveme.SetValue( bot_saveme.GetInt() - 1 );
 		}
 
+		// Stop when shot
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) )
 		{
-			if ( !bot_dontmove.GetBool() && !pBot->IsTaunting() )
+			if ( pBot->m_iHealth == 100 )
 			{
 				forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
 				if ( botdata->sidemove != 0.0f )
@@ -379,29 +372,10 @@ void Bot_Think( CTFPlayer *pBot )
 			{
 				buttons |= IN_JUMP;
 			}
-			if( bot_forward.GetBool() )
-			{
-				//buttons |= IN_FORWARD;
-				forwardmove = 600;
-			}
-			else if( bot_backward.GetBool() )
-			{
-				//buttons |= IN_BACK;
-				forwardmove = -600;
-			}
-			if( bot_strafeleft.GetBool() )
-			{
-				//buttons |= IN_MOVELEFT;
-				sidemove = -600;
-			}
-			else if( bot_straferight.GetBool() )
-			{
-				//buttons |= IN_MOVERIGHT;
-				sidemove = 600;
-			}
 		}
 
-		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && !bot_dontmove.GetBool() && !pBot->IsTaunting() )
+		// Only turn if I haven't been hurt
+		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && pBot->m_iHealth == 100 )
 		{
 			Vector vecEnd;
 			Vector forward;
@@ -612,7 +586,7 @@ void Bot_Think( CTFPlayer *pBot )
 		//sidemove = cos( gpGlobals->curtime * 2.3 + pBot->entindex() ) * speed;
 		sidemove = cos( gpGlobals->curtime + pBot->entindex() ) * speed;
 
-		
+		/*
 		if (sin(gpGlobals->curtime ) < -0.5)
 		{
 			buttons |= IN_DUCK;
@@ -621,7 +595,7 @@ void Bot_Think( CTFPlayer *pBot )
 		{
 			buttons |= IN_WALK;
 		}
-		
+		*/
 
 		pBot->SetLocalAngles( botdata->lastAngles );
 		vecViewAngles = botdata->lastAngles;
@@ -702,16 +676,12 @@ CON_COMMAND_F( bot_changeteams, "Make all bots change teams", FCVAR_CHEAT )
 
 		if ( pPlayer && (pPlayer->GetFlags() & FL_FAKECLIENT) )
 		{
-			int iTeam = pPlayer->GetTeamNumber();
-			if (TF_TEAM_BLUE == iTeam || TF_TEAM_RED == iTeam)
+			int iTeam = pPlayer->GetTeamNumber();			
+			if ( TF_TEAM_BLUE == iTeam || TF_TEAM_RED == iTeam )
 			{
 				// toggle team between red & blue
-				pPlayer->ChangeTeam(TF_TEAM_BLUE + TF_TEAM_RED - iTeam);
-			}
-			else if (iTeam == TEAM_UNASSIGNED || iTeam == TEAM_SPECTATOR)
-			{
-				pPlayer->ChangeTeam(RandomInt(TF_TEAM_BLUE, TF_TEAM_RED));
-			}
+				pPlayer->ChangeTeam( TF_TEAM_BLUE + TF_TEAM_RED - iTeam );
+			}			
 		}
 	}
 }
@@ -728,19 +698,6 @@ CON_COMMAND_F( bot_refill, "Refill all bot ammo counts", FCVAR_CHEAT )
 			pPlayer->GiveAmmo( 1000, TF_AMMO_SECONDARY );
 			pPlayer->GiveAmmo( 1000, TF_AMMO_METAL );
 			pPlayer->TakeHealth( 999, DMG_GENERIC );
-		}
-	}
-}
-
-CON_COMMAND_F(bot_taunt, "Force bots to taunt", FCVAR_CHEAT)
-{
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
-	{
-		CTFPlayer *pPlayer = ToTFPlayer(UTIL_PlayerByIndex(i));
-
-		if (pPlayer && pPlayer->IsFakeClient())
-		{
-			pPlayer->Taunt();
 		}
 	}
 }

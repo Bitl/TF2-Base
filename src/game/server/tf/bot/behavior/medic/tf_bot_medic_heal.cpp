@@ -520,7 +520,7 @@ EventDesiredResult<CTFBot> CTFBotMedicHeal::OnActorEmoted( CTFBot *me, CBaseComb
 		{
 			CWeaponMedigun *pMedigun = dynamic_cast<CWeaponMedigun *>( me->m_Shared.GetActiveTFWeapon() );
 
-			if ( pMedigun && IsReadyToDeployUber( pMedigun ) )
+			if ( IsReadyToDeployUber( pMedigun ) )
 				me->PressAltFireButton();
 		}
 	}
@@ -677,7 +677,7 @@ bool CTFBotMedicHeal::IsReadyToDeployUber( CWeaponMedigun *medigun ) const
 	if ( !medigun )
 		return false;
 
-	return medigun->GetChargeLevel() >= 1.0f;
+	return medigun->GetChargeLevel() >= 100.0f;
 }
 
 bool CTFBotMedicHeal::CanDeployUber( CTFBot *actor, CWeaponMedigun *medigun ) const
