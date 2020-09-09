@@ -568,7 +568,7 @@ bool CTFGameRules::CanBotChooseClass(CBasePlayer* pBot, int iDesiredClassIndex)
 bool CTFGameRules::CanBotChangeClass(CBasePlayer* pBot)
 {
 	CTFPlayer* pPlayer = ToTFPlayer(pBot);
-	if (!pPlayer || pPlayer->GetPlayerClass()->GetClassIndex() == TF_CLASS_UNDEFINED)
+	if ((!pPlayer || pPlayer->GetPlayerClass()->GetClassIndex() == TF_CLASS_UNDEFINED) && pPlayer->IsBot())
 		return true;
 
 	return true;
