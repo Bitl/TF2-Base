@@ -16,7 +16,8 @@
 #include "terror/TerrorNav.h"
 #endif
 
-#if defined TF_DLL || defined TF_MOD
+//TF_MOD_BOT changes
+#ifdef TF_MOD
 #include "tf/nav_mesh/tf_nav_mesh.h"
 #endif
 
@@ -33,7 +34,8 @@ CNavMesh *NavMeshFactory( void )
 	return new TerrorNavMesh;
 #endif
 
-#if defined TF_DLL || defined TF_MOD
+//TF_MOD_BOT changes
+#ifdef TF_MOD
 	return new CTFNavMesh;
 #endif
 

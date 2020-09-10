@@ -705,14 +705,6 @@ void CTeamControlPoint::SetCappersRequiredForTeam( int iGameTeam, int iCappers )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Return true if this point has ever been contested, false if the enemy has never contested this point yet
-//-----------------------------------------------------------------------------
-bool CTeamControlPoint::HasBeenContested(void) const
-{
-	return m_flLastContestedAt > 0.0f;
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 float CTeamControlPoint::LastContestedAt( void )

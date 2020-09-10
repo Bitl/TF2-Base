@@ -118,13 +118,13 @@ Action<CTFBot> *CTFBotScenarioMonitor::DesiredScenarioAndClassAction( CTFBot *ac
 	if ( TFGameRules()->GetGameType() == TF_GAMETYPE_CP )
 	{
 		CUtlVector<CTeamControlPoint *> capture_points;
-		TFGameRules()->CollectCapturePoints( actor, &capture_points );
+		CollectCapturePoints( actor, &capture_points );
 
 		if ( !capture_points.IsEmpty() )
 			return new CTFBotCapturePoint;
 
 		CUtlVector<CTeamControlPoint *> defend_points;
-		TFGameRules()->CollectDefendPoints( actor, &defend_points );
+		CollectDefendPoints( actor, &defend_points );
 
 		if ( !defend_points.IsEmpty() )
 			return new CTFBotDefendPoint;

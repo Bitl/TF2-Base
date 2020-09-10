@@ -56,8 +56,6 @@ public:
 
 	void FireTeamWinOutput( int iWinningTeam );
 
-	bool IsInRound(CTeamControlPoint* pPoint);
-
 	bool PointCanBeCapped( CTeamControlPoint *pPoint );
 	void CheckWinConditions( void );
 

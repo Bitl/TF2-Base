@@ -106,10 +106,6 @@ END_DATADESC();
 
 LINK_ENTITY_TO_CLASS( item_teamflag, CCaptureFlag );
 
-#ifdef GAME_DLL
-IMPLEMENT_AUTO_LIST(ICaptureFlagAutoList);
-#endif
-
 //=============================================================================
 //
 // CTF Flag functions.

@@ -37,8 +37,6 @@ public:
 
 	virtual void	FinishedBuilding( void );
 
-	bool IsSendingPlayer(CTFPlayer* pSender);
-
 	void SetState( int state );
 	virtual void	DeterminePlaybackRate( void );
 

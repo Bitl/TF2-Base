@@ -21,7 +21,6 @@
 #include "hintsystem.h"
 #include "c_playerattachedmodel.h"
 #include "iinput.h"
-#include "tf_weapon_medigun.h"
 
 class C_MuzzleFlashModel;
 class C_BaseObject;

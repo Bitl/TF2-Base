@@ -21,6 +21,7 @@
 #include "behavior/tf_bot_behavior.h"
 #include "behavior/tf_bot_use_item.h"
 #include "NextBotUtil.h"
+#include <tf\tf_weapon_medigun.h>
 
 void DifficultyChanged( IConVar *var, const char *pOldValue, float flOldValue );
 void PrefixNameChanged( IConVar *var, const char *pOldValue, float flOldValue );
@@ -232,13 +233,13 @@ void CTFBot::Event_Killed( const CTakeDamageInfo &info )
 
 	LeaveSquad();
 
+	//TODO: maybe cut this out
 	if ( !tf_bot_keep_class_after_death.GetBool() )
 	{
-		if ( TFGameRules()->CanBotChangeClass( this ) )
-			m_bWantsToChangeClass = true;
+		m_bWantsToChangeClass = true;
 	}
 
-	CTFNavArea *pArea = GetLastKnownArea();
+	CTFNavArea *pArea = (CTFNavArea *)GetLastKnownArea();
 	if ( pArea )
 	{
 		// remove us from old visible set
@@ -342,7 +343,7 @@ void CTFBot::PhysicsSimulate( void )
 	BaseClass::PhysicsSimulate();
 
 	if ( m_HomeArea == nullptr )
-		m_HomeArea = GetLastKnownArea();
+		m_HomeArea = (CTFNavArea*)GetLastKnownArea();
 
 	TeamFortress_SetSpeed();
 
@@ -352,9 +353,264 @@ void CTFBot::PhysicsSimulate( void )
 	if ( !IsAlive() && m_bWantsToChangeClass )
 	{
 		const char *pszClassname = GetNextSpawnClassname();
-		HandleCommand_JoinClass( pszClassname );
+		HandleCommand_JoinClass_Bot( pszClassname );
 
 		m_bWantsToChangeClass = false;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFBot::HandleCommand_JoinClass_Bot(const char* pClassName)
+{
+	// can only join a class after you join a valid team
+	if (!IsBot())
+		return;
+
+	if (GetTeamNumber() <= LAST_SHARED_TEAM)
+		return;
+
+	// In case we don't get the class menu message before the spawn timer
+	// comes up, fake that we've closed the menu.
+	SetClassMenuOpen(false);
+
+	if (TFGameRules()->InStalemate())
+	{
+		if (IsAlive() && !TFGameRules()->CanChangeClassInStalemate())
+		{
+			ClientPrint(this, HUD_PRINTTALK, "#game_stalemate_cant_change_class");
+			return;
+		}
+	}
+
+	int iClass = TF_CLASS_UNDEFINED;
+	bool bShouldNotRespawn = false;
+
+	if ((TFGameRules()->State_Get() == GR_STATE_TEAM_WIN) && (TFGameRules()->GetWinningTeam() != GetTeamNumber()))
+	{
+		m_bAllowInstantSpawn = false;
+		bShouldNotRespawn = true;
+	}
+
+	if (stricmp(pClassName, "random") != 0)
+	{
+		int i = 0;
+
+		for (i = TF_CLASS_SCOUT; i < TF_CLASS_COUNT_ALL; i++)
+		{
+			if (stricmp(pClassName, GetPlayerClassData(i)->m_szClassName) == 0)
+			{
+				iClass = i;
+				break;
+			}
+		}
+		if (i > TF_LAST_NORMAL_CLASS)
+		{
+			Warning("HandleCommand_JoinClass_Bot( %s ) - invalid class name.\n", pClassName);
+			return;
+		}
+	}
+	else
+	{
+		// The player has selected Random class...so let's pick one for them.
+		do {
+			// Don't let them be the same class twice in a row
+			iClass = random->RandomInt(TF_FIRST_NORMAL_CLASS, TF_LAST_NORMAL_CLASS);
+		} while (iClass == GetPlayerClass()->GetClassIndex());
+	}
+
+	// joining the same class?
+	if (iClass != TF_CLASS_RANDOM && iClass == GetDesiredPlayerClassIndex())
+	{
+		// If we're dead, and we have instant spawn, respawn us immediately. Catches the case
+		// were a player misses respawn wave because they're at the class menu, and then changes
+		// their mind and reselects their current class.
+		if (m_bAllowInstantSpawn && !IsAlive())
+		{
+			ForceRespawn();
+		}
+		return;
+	}
+
+	SetDesiredPlayerClassIndex(iClass);
+	IGameEvent* event = gameeventmanager->CreateEvent("player_changeclass");
+	if (event)
+	{
+		event->SetInt("userid", GetUserID());
+		event->SetInt("class", iClass);
+
+		gameeventmanager->FireEvent(event);
+	}
+
+	// are they TF_CLASS_RANDOM and trying to select the class they're currently playing as (so they can stay this class)?
+	if (iClass == GetPlayerClass()->GetClassIndex())
+	{
+		// If we're dead, and we have instant spawn, respawn us immediately. Catches the case
+		// were a player misses respawn wave because they're at the class menu, and then changes
+		// their mind and reselects their current class.
+		if (m_bAllowInstantSpawn && !IsAlive())
+		{
+			ForceRespawn();
+		}
+		return;
+	}
+
+	// We can respawn instantly if:
+	//	- We're dead, and we're past the required post-death time
+	//	- We're inside a respawn room
+	//	- We're in the stalemate grace period
+	bool bInRespawnRoom = PointInRespawnRoom(this, WorldSpaceCenter());
+	if (bInRespawnRoom && !IsAlive())
+	{
+		// If we're not spectating ourselves, ignore respawn rooms. Otherwise we'll get instant spawns
+		// by spectating someone inside a respawn room.
+		bInRespawnRoom = (GetObserverTarget() == this);
+	}
+	bool bDeadInstantSpawn = !IsAlive();
+	if (bDeadInstantSpawn && m_flDeathTime)
+	{
+		// In death mode, don't allow class changes to force respawns ahead of respawn waves
+		float flWaveTime = TFGameRules()->GetNextRespawnWave(GetTeamNumber(), this);
+		bDeadInstantSpawn = (gpGlobals->curtime > flWaveTime);
+	}
+	bool bInStalemateClassChangeTime = false;
+	if (TFGameRules()->InStalemate())
+	{
+		// Stalemate overrides respawn rules. Only allow spawning if we're in the class change time.
+		bInStalemateClassChangeTime = TFGameRules()->CanChangeClassInStalemate();
+		bDeadInstantSpawn = false;
+		bInRespawnRoom = false;
+	}
+	if (bShouldNotRespawn == false && (m_bAllowInstantSpawn || bDeadInstantSpawn || bInRespawnRoom || bInStalemateClassChangeTime))
+	{
+		ForceRespawn();
+		return;
+	}
+
+	if (iClass == TF_CLASS_RANDOM)
+	{
+		if (IsAlive())
+		{
+			ClientPrint(this, HUD_PRINTTALK, "#game_respawn_asrandom");
+		}
+		else
+		{
+			ClientPrint(this, HUD_PRINTTALK, "#game_spawn_asrandom");
+		}
+	}
+	else
+	{
+		if (IsAlive())
+		{
+			ClientPrint(this, HUD_PRINTTALK, "#game_respawn_as", GetPlayerClassData(iClass)->m_szLocalizableName);
+		}
+		else
+		{
+			ClientPrint(this, HUD_PRINTTALK, "#game_spawn_as", GetPlayerClassData(iClass)->m_szLocalizableName);
+		}
+	}
+
+	if (IsAlive() && (GetHudClassAutoKill() == true) && bShouldNotRespawn == false)
+	{
+		CommitSuicide(false, true);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CTFBot::IsPointInRound(CTeamControlPoint* pPoint, CTeamControlPointMaster* pMaster)
+{
+	if (g_hControlPointMasters.IsEmpty())
+		return false;
+
+	if (!pMaster || !pMaster->IsActive())
+		return false;
+
+	CTeamControlPointRound *currround = pMaster->GetCurrentRound();
+
+	// are we playing a round and is this point in the round?
+	if (pMaster->GetNumPoints() > 0 && currround != NULL)
+	{
+		return currround->IsControlPointInRound(pPoint);
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Fills a vector with valid points that the player can capture right now
+// Input:	pPlayer - The player that wants to capture
+//			controlPointVector - A vector to fill with results
+//-----------------------------------------------------------------------------
+void CTFBot::CollectCapturePoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+{
+	Assert(ObjectiveResource());
+	if (!controlPointVector || !pPlayer)
+		return;
+
+	controlPointVector->RemoveAll();
+
+	if (g_hControlPointMasters.IsEmpty())
+		return;
+
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters[0];
+	if (!pMaster || !pMaster->IsActive())
+		return;
+
+	if (pMaster->GetNumPoints() == 1)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(0);
+		if (pPoint && pPoint->GetPointIndex() == 0)
+			controlPointVector->AddToTail(pPoint);
+
+		return;
+	}
+
+	for (int i = 0; i < pMaster->GetNumPoints(); ++i)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
+		if (IsPointInRound(pPoint, pMaster) &&
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) != pPlayer->GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), pPlayer->GetTeamNumber()) &&
+			TeamplayGameRules()->TeamMayCapturePoint(pPlayer->GetTeamNumber(), pPoint->GetPointIndex()))
+		{
+			controlPointVector->AddToTail(pPoint);
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Fills a vector with valid points that the player needs to defend from capture
+// Input:	pPlayer - The player that wants to defend
+//			controlPointVector - A vector to fill with results
+//-----------------------------------------------------------------------------
+void CTFBot::CollectDefendPoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+{
+	Assert(ObjectiveResource());
+	if (!controlPointVector || !pPlayer)
+		return;
+
+	controlPointVector->RemoveAll();
+
+	if (g_hControlPointMasters.IsEmpty())
+		return;
+
+	CTeamControlPointMaster* pMaster = g_hControlPointMasters[0];
+	if (!pMaster || !pMaster->IsActive())
+		return;
+
+	for (int i = 0; i < pMaster->GetNumPoints(); ++i)
+	{
+		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
+		if (IsPointInRound(pPoint, pMaster) &&
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) == pPlayer->GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), GetEnemyTeam(pPlayer)) &&
+			TeamplayGameRules()->TeamMayCapturePoint(GetEnemyTeam(pPlayer), pPoint->GetPointIndex()))
+		{
+			controlPointVector->AddToTail(pPoint);
+		}
 	}
 }
 
@@ -667,7 +923,7 @@ bool CTFBot::AreAllPointsUncontestedSoFar( void ) const
 	for ( int i=0; i<pMaster->GetNumPoints(); ++i )
 	{
 		CTeamControlPoint *pPoint = pMaster->GetControlPoint( i );
-		if ( pPoint && pPoint->HasBeenContested() )
+		if ( pPoint && (pPoint->LastContestedAt() > 0.0f))
 			return false;
 	}
 
@@ -682,7 +938,7 @@ bool CTFBot::IsNearPoint( CTeamControlPoint *point ) const
 	if ( !point )
 		return false;
 
-	CTFNavArea *myArea = GetLastKnownArea();
+	CTFNavArea *myArea = (CTFNavArea*)GetLastKnownArea();
 	if ( !myArea )
 		return false;
 	
@@ -710,8 +966,8 @@ CTeamControlPoint *CTFBot::GetMyControlPoint( void )
 
 		CUtlVector<CTeamControlPoint *> defensePoints;
 		CUtlVector<CTeamControlPoint *> attackPoints;
-		TFGameRules()->CollectDefendPoints( this, &defensePoints );
-		TFGameRules()->CollectCapturePoints( this, &attackPoints );
+		CollectDefendPoints( this, &defensePoints );
+		CollectCapturePoints( this, &attackPoints );
 
 		if ( ( IsPlayerClass( TF_CLASS_SNIPER ) || IsPlayerClass( TF_CLASS_ENGINEER )/* || BYTE( this + 10061 ) & ( 1 << 4 ) */) && !defensePoints.IsEmpty() )
 		{
@@ -1125,7 +1381,7 @@ bool CTFBot::IsEntityBetweenTargetAndSelf( CBaseEntity *blocker, CBaseEntity *ta
 //-----------------------------------------------------------------------------
 float CTFBot::TransientlyConsistentRandomValue( float duration, int seed ) const
 {
-	CTFNavArea *area = GetLastKnownArea();
+	CTFNavArea *area = (CTFNavArea*)GetLastKnownArea();
 	if ( area == nullptr )
 	{
 		return 0.0f;
@@ -1267,6 +1523,23 @@ CBaseObject *CTFBot::GetNearestKnownSappableTarget( void ) const
 	}
 
 	return ret;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Get a specific buildable that this player owns
+//-----------------------------------------------------------------------------
+CBaseObject* CTFBot::GetObjectOfType(int iObjectType)
+{
+	int i;
+
+	for (i = GetObjectCount(); --i >= 0; )
+	{
+		CBaseObject* obj = GetObject(i);
+		if (obj->ObjectType() == iObjectType)
+			return obj;
+	}
+
+	return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -1474,7 +1747,7 @@ void CTFBot::UpdateLookingAroundForEnemies( void )
 		return;
 	}
 
-	CTFNavArea *pArea = GetLastKnownArea();
+	CTFNavArea *pArea = (CTFNavArea*)GetLastKnownArea();
 	if ( pArea )
 	{
 		SelectClosestPotentiallyVisible functor( threat->GetLastKnownPosition() );
@@ -1513,7 +1786,7 @@ void CTFBot::UpdateLookingForIncomingEnemies( bool enemy )
 
 	m_lookForEnemiesTimer.Start( RandomFloat( 0.3f, 1.0f ) );
 
-	CTFNavArea *area = GetLastKnownArea();
+	CTFNavArea *area = (CTFNavArea*)GetLastKnownArea();
 	if ( area == nullptr )
 		return;
 
@@ -2117,8 +2390,6 @@ const char *CTFBot::GetNextSpawnClassname( void )
 	for ( int i=0; pRoster[i].m_iClass != TF_CLASS_UNDEFINED; ++i )
 	{
 		ClassSelection_t const *pInfo = &pRoster[i];
-		if ( !TFGameRules()->CanBotChooseClass( this, pInfo->m_iClass ) )
-			continue;
 
 		if ( func.m_iTotal < pInfo->m_nMinTeamSize )
 			continue;
@@ -2367,7 +2638,7 @@ CON_COMMAND_F( tf_bot_add, "Add a bot.", FCVAR_GAMEDLL )
 			else
 				Q_snprintf( szClassName, sizeof szClassName, "random" );
 
-			bot->HandleCommand_JoinClass( szClassName );
+			bot->HandleCommand_JoinClass_Bot( szClassName );
 		}
 
 		TheTFBots().OnForceAddedBots( count );

@@ -47,9 +47,11 @@ IMPLEMENT_NETWORKCLASS_ALIASED( TFGrenadePipebombProjectile, DT_TFProjectile_Pip
 
 BEGIN_NETWORK_TABLE( CTFGrenadePipebombProjectile, DT_TFProjectile_Pipebomb )
 #ifdef CLIENT_DLL
+RecvPropInt( RECVINFO( m_bTouched ) ),
 RecvPropInt( RECVINFO( m_iType ) ),
 RecvPropEHandle( RECVINFO( m_hLauncher ) ),
 #else
+SendPropBool( SENDINFO( m_bTouched ) ),
 SendPropInt( SENDINFO( m_iType ), 2 ),
 SendPropEHandle( SENDINFO( m_hLauncher ) ),
 

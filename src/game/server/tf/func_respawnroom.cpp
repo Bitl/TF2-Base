@@ -45,7 +45,7 @@ protected:
 LINK_ENTITY_TO_CLASS( func_respawnroom, CFuncRespawnRoom);
 
 BEGIN_DATADESC( CFuncRespawnRoom )
-	DEFINE_FUNCTION(CFuncRespawnRoomShim::Touch ),
+	DEFINE_FUNCTION( RespawnRoomTouch ),
 	// inputs
 	DEFINE_INPUTFUNC( FIELD_VOID, "SetActive", InputSetActive ),
 	DEFINE_INPUTFUNC( FIELD_VOID, "SetInactive", InputSetInactive ),
@@ -56,7 +56,6 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST( CFuncRespawnRoom, DT_FuncRespawnRoom )
 END_SEND_TABLE()
 
-IMPLEMENT_AUTO_LIST(IFuncRespawnRoomAutoList)
 
 //-----------------------------------------------------------------------------
 // Purpose: 

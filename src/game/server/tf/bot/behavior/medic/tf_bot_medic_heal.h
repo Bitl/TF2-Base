@@ -8,6 +8,7 @@
 #include "NextBotBehavior.h"
 #include "NextBotVisionInterface.h"
 #include "Path/NextBotChasePath.h"
+#include "tf\tf_weapon_medigun.h"
 
 class CTFBotMedicHeal : public Action<CTFBot>
 {

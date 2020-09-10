@@ -43,7 +43,7 @@ ActionResult<CTFBot> CTFBotSpyInfiltrate::Update( CTFBot *me, float dt )
 	if ( revolver )
 		me->Weapon_Switch( revolver );
 
-	CTFNavArea *area = me->GetLastKnownArea();
+	CTFNavArea *area = (CTFNavArea*)me->GetLastKnownArea();
 	if ( area == nullptr )
 		return Action<CTFBot>::Continue();
 

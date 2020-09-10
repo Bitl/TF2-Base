@@ -237,8 +237,6 @@ public:
 
 	bool IsGameUnderTimeLimit( void );
 
-	CTeamRoundTimer* GetActiveRoundTimer(void);
-
 protected:
 	virtual void Think( void );
 

@@ -5,6 +5,9 @@
 #include "nav_mesh/tf_nav_mesh.h"
 #include "tf_bot_stickybomb_sentrygun.h"
 
+#define TF_PIPEBOMB_MIN_CHARGE_VEL						900
+#define TF_PIPEBOMB_MAX_CHARGE_VEL						2400
+#define TF_PIPEBOMB_MAX_CHARGE_TIME						4.0f
 
 ConVar tf_bot_sticky_base_range( "tf_bot_sticky_base_range", "800", FCVAR_CHEAT );
 ConVar tf_bot_sticky_charge_rate( "tf_bot_sticky_charge_rate", "0.01", FCVAR_CHEAT, "Seconds of charge per unit range beyond base" );

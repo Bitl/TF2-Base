@@ -64,7 +64,7 @@ ActionResult<CTFBot> CTFBotSpyHide::Update( CTFBot *me, float dt )
 
 	if ( m_bAtHidingSpot )
 	{
-		CTFNavArea *area = me->GetLastKnownArea();
+		CTFNavArea *area = (CTFNavArea*)me->GetLastKnownArea();
 		if ( area != nullptr )
 			m_flEnemyIncursionDistance = area->GetIncursionDistance( GetEnemyTeam( me ) );
 

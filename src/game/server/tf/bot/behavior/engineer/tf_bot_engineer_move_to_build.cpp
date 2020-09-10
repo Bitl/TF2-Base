@@ -88,7 +88,7 @@ ActionResult<CTFBot> CTFBotEngineerMoveToBuild::Update( CTFBot *me, float dt )
 		else
 		{
 			CBaseObject *pEntrance = me->GetObjectOfType( OBJ_TELEPORTER_ENTRANCE );
-			CTFNavArea *pArea = me->GetLastKnownArea();
+			CTFNavArea *pArea = (CTFNavArea*)me->GetLastKnownArea();
 			if ( pEntrance && pArea )
 			{
 				pEntrance->UpdateLastKnownArea();

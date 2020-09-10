@@ -150,10 +150,8 @@ public:
 	void	Heal( CTFPlayer *pPlayer, float flAmount, bool bDispenserHeal = false );
 	void	StopHealing( CTFPlayer *pPlayer );
 	void	RecalculateInvuln( bool bInstantRemove = false );
-	EHANDLE GetHealerByIndex(int index);
 	int		FindHealerIndex( CTFPlayer *pPlayer );
 	EHANDLE	GetFirstHealer();
-	bool	HealerIsDispenser(int index) const;
 #endif
 	int		GetNumHealers( void ) { return m_nNumHealers; }
 

@@ -427,7 +427,7 @@ void CTFBotManager::MaintainBotQuota()
 
 			if ( bot != nullptr )
 			{
-				bot->HandleCommand_JoinTeam( "random" );
+				bot->HandleCommand_JoinTeam( "auto" );
 
 				const char* szClassname;
 				if (FStrEq(tf_bot_force_class.GetString(), ""))

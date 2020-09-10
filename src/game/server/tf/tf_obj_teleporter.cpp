@@ -712,17 +712,6 @@ void CObjectTeleporter::FinishedBuilding( void )
 	SetPlaybackRate( 0.0f );
 }
 
-bool CObjectTeleporter::IsSendingPlayer(CTFPlayer* pSender)
-{
-	bool bResult = false;
-
-	if (pSender && m_hTeleportingPlayer.Get())
-	{
-		bResult = m_hTeleportingPlayer.Get() == pSender;
-	}
-	return bResult;
-}
-
 void CObjectTeleporter::SetState( int state )
 {
 	if ( state != m_iState )

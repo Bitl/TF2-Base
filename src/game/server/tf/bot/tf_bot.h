@@ -16,6 +16,8 @@
 #include "tf_player.h"
 #include "tf_gamerules.h"
 #include "tf_path_follower.h"
+#include "tf\nav_mesh\tf_nav_area.h"
+#include "team_control_point_master.h"
 
 class CTeamControlPoint;
 class CCaptureFlag;
@@ -223,6 +225,14 @@ public:
 	float			TransientlyConsistentRandomValue( float duration, int seed ) const;
 
 	CBaseObject*	GetNearestKnownSappableTarget( void ) const;
+	CBaseObject*	GetObjectOfType(int iObjectType);
+
+	void			HandleCommand_JoinClass_Bot(const char* pClassName);
+
+	bool			IsPointInRound(CTeamControlPoint* pPoint, CTeamControlPointMaster* pMaster);
+
+	void			CollectCapturePoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
+	void			CollectDefendPoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
 
 	void			UpdateLookingAroundForEnemies( void );
 	void			UpdateLookingForIncomingEnemies( bool );
@@ -369,6 +379,12 @@ inline bool operator!( CTFBot::AttributeType const &rhs )
 inline bool operator!=( CTFBot::AttributeType const &rhs, int const &lhs )
 {
 	return (int const &)rhs != lhs;
+}
+
+inline int GetEnemyTeam(CBaseEntity* ent)
+{
+	int myTeam = ent->GetTeamNumber();
+	return (myTeam == TF_TEAM_BLUE ? TF_TEAM_RED : (myTeam == TF_TEAM_RED ? TF_TEAM_BLUE : TEAM_ANY));
 }
 
 inline CTFBot *ToTFBot( CBaseEntity *ent )

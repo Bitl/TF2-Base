@@ -18,8 +18,7 @@ class CTeamControlPointRound;
 // TF team spawning entity.
 //
 
-DECLARE_AUTO_LIST(ITFTeamSpawnAutoList)
-class CTFTeamSpawn : public CPointEntity, public ITFTeamSpawnAutoList
+class CTFTeamSpawn : public CPointEntity
 {
 public:
 	DECLARE_CLASS( CTFTeamSpawn, CPointEntity );

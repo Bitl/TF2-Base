@@ -43,7 +43,7 @@ ActionResult<CTFBot> CTFBotEngineerBuildTeleportEntrance::Update( CTFBot *me, fl
 			return Action<CTFBot>::Continue();
 	}
 
-	CTFNavArea *pArea = me->GetLastKnownArea();
+	CTFNavArea *pArea = (CTFNavArea*)me->GetLastKnownArea();
 	if ( !pArea )
 		return Action<CTFBot>::Done( "No nav mesh!" );
 

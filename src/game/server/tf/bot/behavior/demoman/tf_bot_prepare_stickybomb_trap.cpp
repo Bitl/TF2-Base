@@ -89,7 +89,7 @@ ActionResult<CTFBot> CTFBotPrepareStickybombTrap::OnStart( CTFBot *me, Action<CT
 		m_bReload = false;
 	}
 
-	m_LastKnownArea = me->GetLastKnownArea();
+	m_LastKnownArea = (CTFNavArea *)me->GetLastKnownArea();
 	if ( m_LastKnownArea == nullptr )
 		return Action<CTFBot>::Done( "No nav mesh" );
 
@@ -111,7 +111,7 @@ ActionResult<CTFBot> CTFBotPrepareStickybombTrap::Update( CTFBot *me, float dt )
 
 	if ( me->GetLastKnownArea() && me->GetLastKnownArea() != m_LastKnownArea )
 	{
-		m_LastKnownArea = me->GetLastKnownArea();
+		m_LastKnownArea = (CTFNavArea*)me->GetLastKnownArea();
 		this->InitBombTargetAreas( me );
 	}
 

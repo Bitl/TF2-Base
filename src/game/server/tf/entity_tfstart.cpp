@@ -36,8 +36,6 @@ END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( info_player_teamspawn, CTFTeamSpawn );
 
-IMPLEMENT_AUTO_LIST(ITFTeamSpawnAutoList)
-
 //-----------------------------------------------------------------------------
 // Purpose: Constructor.
 //-----------------------------------------------------------------------------

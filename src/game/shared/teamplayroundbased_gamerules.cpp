@@ -1982,19 +1982,6 @@ void CTeamplayRoundBasedRules::BalanceTeams( bool bRequireSwitcheesToBeDead )
 		return;
 	}
 
-	// wrap with this bool, indicates it's a round running switch and not a between rounds insta-switch
-	if (bRequireSwitcheesToBeDead)
-	{
-#ifndef CSTRIKE_DLL
-		// we don't balance if there is less than 60 seconds on the active timer
-		CTeamRoundTimer* pActiveTimer = GetActiveRoundTimer();
-		if (pActiveTimer && pActiveTimer->GetTimeRemaining() < 60)
-		{
-			return;
-		}
-#endif
-	}
-
 	int iHeaviestTeam = TEAM_UNASSIGNED, iLightestTeam = TEAM_UNASSIGNED;
 
 	// Figure out if we're unbalanced
@@ -2258,19 +2245,6 @@ bool CTeamplayRoundBasedRules::IsPreviouslyPlayedRound( string_t strName )
 string_t CTeamplayRoundBasedRules::GetLastPlayedRound( void )
 {
 	return ( m_iszPreviousRounds.Count() ? m_iszPreviousRounds[0] : NULL_STRING );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-CTeamRoundTimer* CTeamplayRoundBasedRules::GetActiveRoundTimer(void)
-{
-#if defined( TF_DLL ) || defined ( TF_MOD )
-	int iTimerEntIndex = ObjectiveResource()->GetTimerInHUD();
-	return (dynamic_cast<CTeamRoundTimer*>(UTIL_EntityByIndex(iTimerEntIndex)));
-#else
-	return NULL;
-#endif
 }
 
 #endif // GAME_DLL

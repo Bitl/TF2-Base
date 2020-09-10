@@ -22,7 +22,7 @@ BEGIN_DATADESC( CCaptureZone )
 DEFINE_KEYFIELD( m_nCapturePoint, FIELD_INTEGER, "CapturePoint" ),
 
 // Functions.
-DEFINE_FUNCTION(CCaptureZoneShim::Touch ),
+DEFINE_FUNCTION( Touch ),
 
 // Inputs.
 DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
@@ -39,8 +39,6 @@ LINK_ENTITY_TO_CLASS( func_capturezone, CCaptureZone );
 IMPLEMENT_SERVERCLASS_ST( CCaptureZone, DT_CaptureZone )
 END_SEND_TABLE()
 
-IMPLEMENT_AUTO_LIST(ICaptureZoneAutoList);
-
 //=============================================================================
 //
 // CTF Flag Capture Zone functions.
@@ -52,7 +50,7 @@ IMPLEMENT_AUTO_LIST(ICaptureZoneAutoList);
 void CCaptureZone::Spawn()
 {
 	InitTrigger();
-	SetTouch(&CCaptureZoneShim::Touch);
+	SetTouch( &CCaptureZone::Touch );
 
 	if ( m_bDisabled )
 	{
@@ -65,7 +63,7 @@ void CCaptureZone::Spawn()
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CCaptureZone::CaptureTouch( CBaseEntity *pOther )
+void CCaptureZone::Touch( CBaseEntity *pOther )
 {
 	// Is the zone enabled?
 	if ( IsDisabled() )

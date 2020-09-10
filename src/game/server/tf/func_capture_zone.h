@@ -11,23 +11,11 @@
 
 #include "triggers.h"
 
-//-----------------------------------------------------------------------------
-// Purpose: This class is to get around the fact that DEFINE_FUNCTION doesn't like multiple inheritance
-//-----------------------------------------------------------------------------
-class CCaptureZoneShim : public CBaseTrigger
-{
-	virtual void CaptureTouch(CBaseEntity* pOther) = 0;
-
-public:
-	void Touch(CBaseEntity* pOther) { return CaptureTouch(pOther); }
-};
-
 //=============================================================================
 //
 // CTF Flag Capture Zone class.
 //
-DECLARE_AUTO_LIST(ICaptureZoneAutoList)
-class CCaptureZone : public CCaptureZoneShim, public ICaptureZoneAutoList
+class CCaptureZone : public CBaseTrigger
 {
 	DECLARE_CLASS( CCaptureZone, CBaseTrigger );
 
@@ -35,7 +23,7 @@ public:
 	DECLARE_SERVERCLASS();
 
 	void	Spawn();
-	virtual void CaptureTouch(CBaseEntity* pOther);
+	void	Touch( CBaseEntity *pOther );
 
 	bool	IsDisabled( void );
 	void	SetDisabled( bool bDisabled );

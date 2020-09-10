@@ -372,7 +372,8 @@ void CTFBotDestroyEnemySentry::ComputeCornerAttackSpot( CTFBot *actor )
 	FindSafeSentryApproachAreaScan scan;
 	scan.m_pActor = actor;
 	scan.m_bInDangerousArea = false;
-	if ( actor->GetLastKnownArea() && actor->GetLastKnownArea()->IsTFMarked() )
+	CTFNavArea* area = (CTFNavArea*)actor->GetLastKnownArea();
+	if (area && area->IsTFMarked() )
 		scan.m_bInDangerousArea = true;
 
 	SearchSurroundingAreas( actor->GetLastKnownArea(), scan );

@@ -61,18 +61,22 @@ public:
 	virtual float GetChargeBeginTime( void ) { return m_flChargeBeginTime; }
 	virtual float GetChargeMaxTime( void );
 	int	GetPipeBombCount( void ) { return m_iPipebombCount; }
+	//TF_MOD_BOT changes
+	// List of active pipebombs
+	typedef CHandle<CTFGrenadePipebombProjectile>	PipebombHandle;
+	CUtlVector<PipebombHandle>		m_Pipebombs;
 
 	void LaunchGrenade( void );
 	bool DetonateRemotePipebombs( bool bFizzle );
 	void AddPipeBomb( CTFGrenadePipebombProjectile *pBomb );
 	void			DeathNotice( CBaseEntity *pVictim );
 
-	// List of active pipebombs
-	typedef CHandle<CTFGrenadePipebombProjectile>	PipebombHandle;
-	CUtlVector<PipebombHandle>		m_Pipebombs;
+
 
 #ifdef GAME_DLL
 	void			UpdateOnRemove( void );
+	
+	
 
 private:
 

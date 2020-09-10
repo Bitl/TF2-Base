@@ -100,11 +100,6 @@ public:
 	virtual bool	TeamMayCapturePoint( int iTeam, int iPointIndex );
 	virtual bool	PlayerMayCapturePoint( CBasePlayer *pPlayer, int iPointIndex, char *pszReason = NULL, int iMaxReasonLength = 0 );
 	virtual bool	PlayerMayBlockPoint( CBasePlayer *pPlayer, int iPointIndex, char *pszReason = NULL, int iMaxReasonLength = 0 );
-
-#ifdef GAME_DLL
-	void			CollectCapturePoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
-	void			CollectDefendPoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
-#endif
 	
 	static int		CalcPlayerScore( RoundStats_t *pRoundStats );
 
@@ -148,9 +143,6 @@ public:
 	virtual void	HandleSwitchTeams( void );
 	virtual void	HandleScrambleTeams( void );
 	bool			CanChangeClassInStalemate( void );
-
-	bool			CanBotChooseClass(CBasePlayer* pBot, int iDesiredClassIndex);
-	bool			CanBotChangeClass(CBasePlayer* pBot);
 
 	virtual void	SetRoundOverlayDetails( void );	
 	virtual void	ShowRoundInfoPanel( CTFPlayer *pPlayer = NULL ); // NULL pPlayer means show the panel to everyone
@@ -208,8 +200,6 @@ public:
 	void	RunPlayerConditionThink ( void );
 
 	const char *GetTeamGoalString( int iTeam );
-
-	int				GetAssignedHumanTeam(void) const;
 
 	virtual bool	IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer ) { return true; }
 
@@ -289,9 +279,6 @@ public:
 
 	int		GetPreviousRoundWinners( void ) { return m_iPreviousRoundWinners; }
 
-	const CUtlVector<EHANDLE>& GetAmmoEnts(void) const { Assert(m_hAmmoEntities.Count()); return m_hAmmoEntities; }
-	const CUtlVector<EHANDLE>& GetHealthEnts(void) const { Assert(m_hHealthEntities.Count()); return m_hHealthEntities; }
-
 	void	SendHudNotification( IRecipientFilter &filter, HudNotification_t iType );
 	void	SendHudNotification( IRecipientFilter &filter, const char *pszText, const char *pszIcon, int iTeam = TEAM_UNASSIGNED );
 
@@ -318,9 +305,6 @@ private:
 	int m_iCurrentRoundState;
 	int m_iCurrentMiniRoundMask;
 	float m_flTimerMayExpireAt;
-
-	CUtlVector<EHANDLE> m_hAmmoEntities;
-	CUtlVector<EHANDLE> m_hHealthEntities;
 
 #endif
 

@@ -383,7 +383,6 @@ CTFPlayer::CTFPlayer()
 	m_bInitTaunt = false;
 
 	m_bSpeakingConceptAsDisguisedSpy = false;
-	m_lastCalledMedic.Invalidate();
 }
 
 
@@ -845,8 +844,6 @@ void CTFPlayer::Spawn()
 			}
 		}
 	}
-
-	m_lastCalledMedic.Invalidate();
 
 	CTF_GameStats.Event_PlayerSpawned( this );
 
@@ -2381,21 +2378,6 @@ EHANDLE CTFPlayer::TeamFortress_GetDisguiseTarget( int nTeam, int nClass )
 	return NULL;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-CBaseObject* CTFPlayer::GetObjectOfType(int iType)
-{
-	FOR_EACH_VEC(m_aObjects, i)
-	{
-		CBaseObject* obj = (CBaseObject*)m_aObjects[i].Get();
-		if (obj->ObjectType() == iType)
-			return obj;
-	}
-
-	return NULL;
-}
-
 static float DamageForce( const Vector &size, float damage, float scale )
 { 
 	float force = damage * ((48 * 48 * 82.0) / (size.x * size.y * size.z)) * scale;
@@ -2970,163 +2952,6 @@ int CTFPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
 	// Done.
 	return 1;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-CTriggerAreaCapture* CTFPlayer::GetControlPointStandingOn(void)
-{
-	touchlink_t* root = (touchlink_t*)GetDataObject(TOUCHLINK);
-	if (root)
-	{
-		touchlink_t* next = root->nextLink;
-		while (next != root)
-		{
-			CBaseEntity* pEntity = next->entityTouched;
-			if (!pEntity)
-				return NULL;
-
-			if (pEntity->IsSolidFlagSet(FSOLID_TRIGGER) && pEntity->IsBSPModel())
-			{
-				CTriggerAreaCapture* pCapArea = dynamic_cast<CTriggerAreaCapture*>(pEntity);
-				if (pCapArea)
-					return pCapArea;
-			}
-
-			next = next->nextLink;
-		}
-	}
-
-	return NULL;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CTFPlayer::IsCapturingPoint(void)
-{
-	CTriggerAreaCapture* pCapArea = GetControlPointStandingOn();
-	if (pCapArea)
-	{
-		CTeamControlPoint* pPoint = pCapArea->GetControlPoint();
-		if (pPoint && TFGameRules()->TeamMayCapturePoint(GetTeamNumber(), pPoint->GetPointIndex()) &&
-			TFGameRules()->PlayerMayCapturePoint(this, pPoint->GetPointIndex()))
-		{
-			return pPoint->GetOwner() != GetTeamNumber();
-		}
-	}
-
-	return false;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Return a CTFNavArea casted instance
-//-----------------------------------------------------------------------------
-CTFNavArea* CTFPlayer::GetLastKnownArea(void) const
-{
-	return (CTFNavArea*)m_lastNavArea;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CTFPlayer::OnNavAreaChanged(CNavArea* newArea, CNavArea* oldArea)
-{
-	VPROF_BUDGET(__FUNCTION__, "NextBot");
-
-	if (!newArea || !oldArea)
-		return;
-
-	NavAreaCollector collector(true);
-	newArea->ForAllPotentiallyVisibleAreas(collector);
-
-	const CUtlVector<CNavArea*>* areas = &collector.m_area;
-
-	FOR_EACH_VEC(*areas, i) {
-		CTFNavArea* area = static_cast<CTFNavArea*>((*areas)[i]);
-		area->IncreaseDanger(GetTeamNumber(), (area->GetCenter() - GetAbsOrigin()).Length());
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-const Vector& CTFPlayer::EstimateProjectileImpactPosition(CTFWeaponBaseGun* weapon)
-{
-	if (!weapon)
-		return GetAbsOrigin();
-
-	const QAngle& angles = EyeAngles();
-
-	float initVel = weapon->IsWeapon(TF_WEAPON_PIPEBOMBLAUNCHER) ? TF_PIPEBOMB_MIN_CHARGE_VEL : weapon->GetProjectileSpeed();
-
-	return EstimateProjectileImpactPosition(angles.x, angles.y, initVel);
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-const Vector& CTFPlayer::EstimateStickybombProjectileImpactPosition(float pitch, float yaw, float charge)
-{
-	float initVel = charge * (TF_PIPEBOMB_MAX_CHARGE_VEL - TF_PIPEBOMB_MIN_CHARGE_VEL) + TF_PIPEBOMB_MIN_CHARGE_VEL;
-
-	return EstimateProjectileImpactPosition(pitch, yaw, initVel);
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-const Vector& CTFPlayer::EstimateProjectileImpactPosition(float pitch, float yaw, float initVel)
-{
-	VPROF_BUDGET(__FUNCTION__, "NextBot");
-
-	Vector vecForward, vecRight, vecUp;
-	QAngle angles(pitch, yaw, 0.0f);
-	AngleVectors(angles, &vecForward, &vecRight, &vecUp);
-
-	Vector vecSrc = Weapon_ShootPosition();
-	vecSrc += vecForward * 16.0f + vecRight * 8.0f + vecUp * -6.0f;
-
-	const float initVelScale = 0.9f;
-	Vector      vecVelocity = initVelScale * ((vecForward * initVel) + (vecUp * 200.0f));
-
-	Vector      pos = vecSrc;
-	Vector      lastPos = pos;
-
-	extern ConVar sv_gravity;
-	const float g = sv_gravity.GetFloat();
-
-	Vector alongDir = vecForward;
-	alongDir.AsVector2D().NormalizeInPlace();
-
-	float alongVel = vecVelocity.AsVector2D().Length();
-
-	trace_t                        trace;
-	NextBotTraceFilterIgnoreActors traceFilter(this, COLLISION_GROUP_NONE);
-	const float timeStep = 0.01f;
-	const float maxTime = 5.0f;
-
-	float t = 0.0f;
-	do
-	{
-		float along = alongVel * t;
-		float height = vecVelocity.z * t - 0.5f * g * Square(t);
-
-		pos.x = vecSrc.x + alongDir.x * along;
-		pos.y = vecSrc.y + alongDir.y * along;
-		pos.z = vecSrc.z + height;
-
-		UTIL_TraceHull(lastPos, pos, -Vector(8, 8, 8), Vector(8, 8, 8), MASK_SOLID_BRUSHONLY, &traceFilter, &trace);
-
-		if (trace.DidHit())
-			break;
-
-		lastPos = pos;
-		t += timeStep;
-	} while (t < maxTime);
-
-	return trace.endpos;
 }
 
 //-----------------------------------------------------------------------------
@@ -6342,76 +6167,4 @@ bool CTFPlayer::ShouldAnnouceAchievement( void )
 	}
 
 	return true; 
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-float CTFPlayerPathCost::operator()(CNavArea* area, CNavArea* fromArea, const CNavLadder* ladder, const CFuncElevator* elevator, float length) const
-{
-	VPROF_BUDGET(__FUNCTION__, "NextBot");
-
-	if (fromArea == nullptr)
-	{
-		// first area in path; zero cost
-		return 0.0f;
-	}
-
-	const CTFNavArea* tfArea = dynamic_cast<const CTFNavArea*>(area);
-	if (tfArea == nullptr)
-		return false;
-
-	if (!m_pPlayer->IsAreaTraversable(area))
-	{
-		// dead end
-		return -1.0f;
-	}
-
-	// unless the round is over and we are the winning team, we can't enter the other teams spawn
-	if (TFGameRules()->State_Get() != GR_STATE_TEAM_WIN)
-	{
-		switch (m_pPlayer->GetTeamNumber())
-		{
-		case TF_TEAM_RED:
-		{
-			if (tfArea->HasTFAttributes(BLUE_SPAWN_ROOM))
-				return -1.0f;
-
-			break;
-		}
-		case TF_TEAM_BLUE:
-		{
-			if (tfArea->HasTFAttributes(RED_SPAWN_ROOM))
-				return -1.0f;
-
-			break;
-		}
-		default:
-			break;
-		}
-	}
-
-	if (ladder != nullptr)
-		length = ladder->m_length;
-	else if (length <= 0.0f)
-		length = (area->GetCenter() - fromArea->GetCenter()).Length();
-
-	const float dz = fromArea->ComputeAdjacentConnectionHeightChange(area);
-	if (dz >= m_flStepHeight)
-	{
-		// too high!
-		if (dz >= m_flMaxJumpHeight)
-			return -1.0f;
-
-		// jumping is slow
-		length *= 2;
-	}
-	else
-	{
-		// yikes, this drop will hurt too much!
-		if (dz < -m_flDeathDropHeight)
-			return -1.0f;
-	}
-
-	return fromArea->GetCostSoFar() + length;
 }

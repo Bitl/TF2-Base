@@ -31,8 +31,6 @@ enum
 
 #define TF_TEAM_AUTOASSIGN (TF_TEAM_COUNT + 1 )
 
-bool IsTeamName(const char* name);
-
 extern const char *g_aTeamNames[TF_TEAM_COUNT];
 extern color32 g_aTeamColors[TF_TEAM_COUNT];
 
@@ -123,8 +121,6 @@ enum
 	TF_CLASS_RANDOM
 };
 
-bool IsPlayerClassName(const char* name);
-int GetClassIndexFromString(const char* name, int maxClass = TF_LAST_NORMAL_CLASS);
 extern const char *g_aPlayerClassNames[];				// localized class names
 extern const char *g_aPlayerClassNames_NonLocalized[];	// non-localized class names
 
@@ -233,9 +229,6 @@ extern const char *g_aAmmoNames[];
 #define TF_WEAPON_PIPEBOMB_WORLD_COUNT					15
 #define TF_WEAPON_PIPEBOMB_COUNT						8
 #define TF_WEAPON_PIPEBOMB_INTERVAL						0.6f
-#define TF_PIPEBOMB_MIN_CHARGE_VEL						900
-#define TF_PIPEBOMB_MAX_CHARGE_VEL						2400
-#define TF_PIPEBOMB_MAX_CHARGE_TIME						4.0f
 
 #define TF_WEAPON_ROCKET_INTERVAL						0.8f
 
@@ -640,7 +633,6 @@ enum
 #define SENTRYGUN_MAX_SHELLS_2			120
 #define SENTRYGUN_MAX_SHELLS_3			144
 #define SENTRYGUN_MAX_ROCKETS			20
-#define SENTRYGUN_BASE_RANGE			1100.0f
 
 // Dispenser's maximum carrying capability
 #define DISPENSER_MAX_METAL_AMMO		400
@@ -925,10 +917,5 @@ typedef enum
 	NUM_STOCK_NOTIFICATIONS
 } HudNotification_t;
 
-inline int GetEnemyTeam(CBaseEntity* ent)
-{
-	int myTeam = ent->GetTeamNumber();
-	return (myTeam == TF_TEAM_BLUE ? TF_TEAM_RED : (myTeam == TF_TEAM_RED ? TF_TEAM_BLUE : TEAM_ANY));
-}
 
 #endif // TF_SHAREDDEFS_H
