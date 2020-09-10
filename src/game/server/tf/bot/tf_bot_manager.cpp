@@ -427,7 +427,7 @@ void CTFBotManager::MaintainBotQuota()
 
 			if ( bot != nullptr )
 			{
-				bot->HandleCommand_JoinTeam( "auto" );
+				bot->HandleCommand_JoinTeam_Bot( "auto" );
 
 				const char* szClassname;
 				if (FStrEq(tf_bot_force_class.GetString(), ""))
@@ -439,7 +439,7 @@ void CTFBotManager::MaintainBotQuota()
 					szClassname = tf_bot_force_class.GetString();
 				}
 
-				bot->HandleCommand_JoinClass(szClassname);
+				bot->HandleCommand_JoinClass_Bot(szClassname);
 
 				char szName[256];
 				CreateBotName( bot->GetTeamNumber(), bot->GetPlayerClass()->GetClassIndex(), tf_bot_difficulty.GetInt(), szName, sizeof( szName ) );

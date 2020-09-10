@@ -11,6 +11,7 @@
 #include "tf_bot_engineer_build_teleport_exit.h"
 #include "tf_bot_engineer_move_to_build.h"
 #include <tf\tf_obj_sentrygun.h>
+#include <NextBot\NextBotUtil.h>
 
 
 ConVar tf_bot_engineer_retaliate_range( "tf_bot_engineer_retaliate_range", "750", FCVAR_CHEAT, "If attacker who destroyed sentry is closer than this, attack. Otherwise, retreat" );

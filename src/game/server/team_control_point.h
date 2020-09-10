@@ -66,6 +66,9 @@ public:
 	int			GetPointIndex( void ) { return m_iPointIndex; }
 	void		SetPointIndex( int index ) { m_iPointIndex = index; }
 
+	//TF_MOD_BOT changes
+	int			GetPointTeam(void) { return m_iTeam; }
+
 	bool		GetWarnOnCap( void ) { return m_bWarnOnCap; }
 	string_t	GetWarnSound( void ) { return m_iszWarnSound; }
 
@@ -86,6 +89,8 @@ public:
 	void		SetLastContestedAt( float flTime );
 
 	void		UpdateCapPercentage( void );
+	//TF_MOD_BOT changes
+	float		GetTeamCapPercentage(int iTeam);
 
 	// The specified player took part in capping this point.
 	virtual void PlayerCapped( CBaseMultiplayerPlayer *pPlayer );
@@ -102,7 +107,6 @@ public:
 private:
 	void		SendCapString( int iCapTeam, int iNumCappers, int *pCappingPlayers );
 	void		InternalSetOwner( int iCapTeam, bool bMakeSound = true, int iNumCappers = 0, int *iCappingPlayers = NULL );
-	float		GetTeamCapPercentage( int iTeam );
 
 	int			m_iTeam;			
 	int			m_iDefaultOwner;			// Team that initially owns the cap point

@@ -110,7 +110,7 @@ ActionResult<CTFBot> CTFBotStickybombSentrygun::Update( CTFBot *me, float dt )
 	{
 		FOR_EACH_VEC( pLauncher->m_Pipebombs, i )
 		{
-			if ( !pLauncher->m_Pipebombs[i]->Touched() )
+			if ( !pLauncher->m_Pipebombs[i]->m_bTouched)
 				return BaseClass::Continue();
 		}
 

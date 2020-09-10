@@ -382,6 +382,10 @@ public:
 	CTFWeaponBase		*Weapon_OwnsThisID( int iWeaponID );
 	CTFWeaponBase		*Weapon_GetWeaponByType( int iType );
 
+	//TF_MOD_BOT changes
+	IntervalTimer m_lastCalledMedic;
+	CBaseObject* GetObjectOfType(int iObjectType);
+
 private:
 
 	int					GetAutoTeam( void );

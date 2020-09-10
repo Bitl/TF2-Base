@@ -53,6 +53,9 @@ public:
 	// Engineer hit me with a wrench
 	virtual bool	OnWrenchHit( CTFPlayer *pPlayer );
 
+	//TF_MOD_BOT changes
+	const QAngle& GetTurretAngles(void) const { return m_vecCurAngles; }
+
 	virtual void	OnStartDisabled( void );
 	virtual void	OnEndDisabled( void );
 
@@ -62,6 +65,9 @@ public:
 	virtual bool	IsUpgrading( void ) const;
 
 	int				GetUpgradeLevel( void ) { return m_iUpgradeLevel; }
+
+	//TF_MOD_BOT changes
+	bool ValidTargetBot(CBaseCombatCharacter* pActor);
 
 private:
 

@@ -113,7 +113,8 @@ ActionResult<CTFBot> CTFBotRetreatToCover::Update( CTFBot *me, float dt )
 	for ( int i=0; i<me->m_Shared.GetNumHealers(); ++i )
 	{
 		CTFPlayer *pMedic = ToTFPlayer( me->m_Shared.GetHealerByIndex( i ) );
-		if ( pMedic && pMedic->MedicGetChargeLevel() > 0.9f )
+		//HACK!!!!!
+		if ( pMedic && me->MedicGetChargeLevel() > 0.9f )
 			return Action<CTFBot>::Continue();
 	}
 

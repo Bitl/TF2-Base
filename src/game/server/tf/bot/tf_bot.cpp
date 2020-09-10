@@ -22,6 +22,8 @@
 #include "behavior/tf_bot_use_item.h"
 #include "NextBotUtil.h"
 #include <tf\tf_weapon_medigun.h>
+#include <viewport_panel_names.h>
+#include <tf\tf_team.h>
 
 void DifficultyChanged( IConVar *var, const char *pOldValue, float flOldValue );
 void PrefixNameChanged( IConVar *var, const char *pOldValue, float flOldValue );
@@ -48,10 +50,6 @@ ConVar tf_bot_debug_items( "tf_bot_debug_items", "0", FCVAR_CHEAT );
 ConVar tf_bot_random_loadouts( "tf_bot_random_loadouts", "0", FCVAR_NOTIFY, "Randomly outfit class specific items to bots?" );
 ConVar tf_bot_reroll_loadout_chance( "tf_bot_reroll_loadout_chance", "33", FCVAR_NONE, "The chance to reroll a loadout selection if tf_bot_keep_items_after_death = 1" );
 ConVar tf_bot_keep_items_after_death( "tf_bot_keep_items_after_death", "1", FCVAR_NONE, "Keep our item sets we were given when respawning?" );
-
-
-extern ConVar tf2v_force_melee;
-
 
 LINK_ENTITY_TO_CLASS( tf_bot, CTFBot )
 
@@ -362,6 +360,111 @@ void CTFBot::PhysicsSimulate( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+int CTFBot::GetAutoTeam_Bot(void)
+{
+	if (!IsBot())
+		return;
+
+	int iTeam = TEAM_SPECTATOR;
+
+	CTFTeam* pBlue = TFTeamMgr()->GetTeam(TF_TEAM_BLUE);
+	CTFTeam* pRed = TFTeamMgr()->GetTeam(TF_TEAM_RED);
+
+	if (pBlue && pRed)
+	{
+		if (pBlue->GetNumPlayers() < pRed->GetNumPlayers())
+		{
+			iTeam = TF_TEAM_BLUE;
+		}
+		else if (pRed->GetNumPlayers() < pBlue->GetNumPlayers())
+		{
+			iTeam = TF_TEAM_RED;
+		}
+		else
+		{
+			iTeam = RandomInt(0, 1) ? TF_TEAM_RED : TF_TEAM_BLUE;
+		}
+	}
+
+	return iTeam;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CTFBot::HandleCommand_JoinTeam_Bot(const char* pTeamName)
+{
+	if (!IsBot())
+		return;
+
+	int iTeam = TF_TEAM_RED;
+	if (stricmp(pTeamName, "auto") == 0)
+	{
+		iTeam = GetAutoTeam_Bot();
+	}
+	else if (stricmp(pTeamName, "spectate") == 0)
+	{
+		iTeam = TEAM_SPECTATOR;
+	}
+	else
+	{
+		for (int i = 0; i < TF_TEAM_COUNT; ++i)
+		{
+			if (stricmp(pTeamName, g_aTeamNames[i]) == 0)
+			{
+				iTeam = i;
+				break;
+			}
+		}
+	}
+
+	if (iTeam == TEAM_SPECTATOR)
+	{
+		// Prevent this is the cvar is set
+		if (!mp_allowspectators.GetInt() && !IsHLTV())
+		{
+			ClientPrint(this, HUD_PRINTCENTER, "#Cannot_Be_Spectator");
+			return;
+		}
+
+		if (GetTeamNumber() != TEAM_UNASSIGNED && !IsDead())
+		{
+			CommitSuicide(false, true);
+		}
+
+		ChangeTeam(TEAM_SPECTATOR);
+
+		// do we have fadetoblack on? (need to fade their screen back in)
+		if (mp_fadetoblack.GetBool())
+		{
+			color32_s clr = { 0,0,0,255 };
+			UTIL_ScreenFade(this, clr, 0, 0, FFADE_IN | FFADE_PURGE);
+		}
+	}
+	else
+	{
+		if (iTeam == GetTeamNumber())
+		{
+			return;	// we wouldn't change the team
+		}
+
+		// if this join would unbalance the teams, refuse
+		// come up with a better way to tell the player they tried to join a full team!
+		if (TFGameRules()->WouldChangeUnbalanceTeams(iTeam, GetTeamNumber()))
+		{
+			ShowViewPortPanel(PANEL_TEAM);
+			return;
+		}
+
+		ChangeTeam(iTeam);
+
+		ShowViewPortPanel((iTeam == TF_TEAM_RED) ? PANEL_CLASS_RED : PANEL_CLASS_BLUE);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 void CTFBot::HandleCommand_JoinClass_Bot(const char* pClassName)
 {
 	// can only join a class after you join a valid team
@@ -544,10 +647,10 @@ bool CTFBot::IsPointInRound(CTeamControlPoint* pPoint, CTeamControlPointMaster* 
 // Input:	pPlayer - The player that wants to capture
 //			controlPointVector - A vector to fill with results
 //-----------------------------------------------------------------------------
-void CTFBot::CollectCapturePoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+void CTFBot::CollectCapturePoints(CUtlVector<CTeamControlPoint*>* controlPointVector)
 {
 	Assert(ObjectiveResource());
-	if (!controlPointVector || !pPlayer)
+	if (!controlPointVector)
 		return;
 
 	controlPointVector->RemoveAll();
@@ -572,9 +675,9 @@ void CTFBot::CollectCapturePoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlP
 	{
 		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
 		if (IsPointInRound(pPoint, pMaster) &&
-			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) != pPlayer->GetTeamNumber() &&
-			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), pPlayer->GetTeamNumber()) &&
-			TeamplayGameRules()->TeamMayCapturePoint(pPlayer->GetTeamNumber(), pPoint->GetPointIndex()))
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) != GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), GetTeamNumber()) &&
+			TeamplayGameRules()->TeamMayCapturePoint(GetTeamNumber(), pPoint->GetPointIndex()))
 		{
 			controlPointVector->AddToTail(pPoint);
 		}
@@ -586,10 +689,10 @@ void CTFBot::CollectCapturePoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlP
 // Input:	pPlayer - The player that wants to defend
 //			controlPointVector - A vector to fill with results
 //-----------------------------------------------------------------------------
-void CTFBot::CollectDefendPoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPoint*>* controlPointVector)
+void CTFBot::CollectDefendPoints(CUtlVector<CTeamControlPoint*>* controlPointVector)
 {
 	Assert(ObjectiveResource());
-	if (!controlPointVector || !pPlayer)
+	if (!controlPointVector)
 		return;
 
 	controlPointVector->RemoveAll();
@@ -605,13 +708,50 @@ void CTFBot::CollectDefendPoints(CBasePlayer* pPlayer, CUtlVector<CTeamControlPo
 	{
 		CTeamControlPoint* pPoint = pMaster->GetControlPoint(i);
 		if (IsPointInRound(pPoint, pMaster) &&
-			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) == pPlayer->GetTeamNumber() &&
-			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), GetEnemyTeam(pPlayer)) &&
-			TeamplayGameRules()->TeamMayCapturePoint(GetEnemyTeam(pPlayer), pPoint->GetPointIndex()))
+			ObjectiveResource()->GetOwningTeam(pPoint->GetPointIndex()) == GetTeamNumber() &&
+			ObjectiveResource()->TeamCanCapPoint(pPoint->GetPointIndex(), GetEnemyTeam(this)) &&
+			TeamplayGameRules()->TeamMayCapturePoint(GetEnemyTeam(this), pPoint->GetPointIndex()))
 		{
 			controlPointVector->AddToTail(pPoint);
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CTFBot::MedicGetChargeLevel(void)
+{
+	if (IsPlayerClass(TF_CLASS_MEDIC))
+	{
+		CTFWeaponBase* pWpn = (CTFWeaponBase*)Weapon_OwnsThisID(TF_WEAPON_MEDIGUN);
+
+		if (pWpn == NULL)
+			return 0;
+
+		CWeaponMedigun* pWeapon = dynamic_cast <CWeaponMedigun*>(pWpn);
+
+		if (pWeapon)
+			return pWeapon->GetChargeLevel();
+	}
+
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CBaseEntity* CTFBot::MedicGetHealTarget(void)
+{
+	if (IsPlayerClass(TF_CLASS_MEDIC))
+	{
+		CWeaponMedigun* pWeapon = dynamic_cast <CWeaponMedigun*>(GetActiveWeapon());
+
+		if (pWeapon)
+			return pWeapon->GetHealTarget();
+	}
+
+	return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -1526,23 +1666,6 @@ CBaseObject *CTFBot::GetNearestKnownSappableTarget( void ) const
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: Get a specific buildable that this player owns
-//-----------------------------------------------------------------------------
-CBaseObject* CTFBot::GetObjectOfType(int iObjectType)
-{
-	int i;
-
-	for (i = GetObjectCount(); --i >= 0; )
-	{
-		CBaseObject* obj = GetObject(i);
-		if (obj->ObjectType() == iObjectType)
-			return obj;
-	}
-
-	return NULL;
-}
-
-//-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CTFBot::DelayedThreatNotice( CHandle<CBaseEntity> ent, float delay )
@@ -2368,10 +2491,10 @@ const char *CTFBot::GetNextSpawnClassname( void )
 	if (TFGameRules()->GetGameType() == TF_GAMETYPE_CP)
 	{
 		CUtlVector<CTeamControlPoint*> attackPoints;
-		TFGameRules()->CollectCapturePoints(this, &attackPoints);
+		CollectCapturePoints(&attackPoints);
 
 		CUtlVector<CTeamControlPoint*> defensePoints;
-		TFGameRules()->CollectDefendPoints(this, &defensePoints);
+		CollectDefendPoints(&defensePoints);
 
 		if (attackPoints.IsEmpty() && !defensePoints.IsEmpty())
 			pRoster = defenseRoster;
@@ -2622,7 +2745,7 @@ CON_COMMAND_F( tf_bot_add, "Add a bot.", FCVAR_GAMEDLL )
 			else
 				Q_snprintf( szTeam, sizeof szTeam, "auto" );
 
-			bot->HandleCommand_JoinTeam( szTeam );
+			bot->HandleCommand_JoinTeam_Bot( szTeam );
 
 			char szClassName[16];
 			if ( args.ArgC() > 3 )
@@ -2706,4 +2829,76 @@ CON_COMMAND_F( tf_bot_kick, "Remove a TFBot by name, or all bots (\"all\").", FC
 			}
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CTFPlayerPathCost::operator()(CNavArea* area, CNavArea* fromArea, const CNavLadder* ladder, const CFuncElevator* elevator, float length) const
+{
+	VPROF_BUDGET(__FUNCTION__, "NextBot");
+
+	if (fromArea == nullptr)
+	{
+		// first area in path; zero cost
+		return 0.0f;
+	}
+
+	const CTFNavArea* tfArea = dynamic_cast<const CTFNavArea*>(area);
+	if (tfArea == nullptr)
+		return false;
+
+	if (!m_pPlayer->IsAreaTraversable(area))
+	{
+		// dead end
+		return -1.0f;
+	}
+
+	// unless the round is over and we are the winning team, we can't enter the other teams spawn
+	if (TFGameRules()->State_Get() != GR_STATE_TEAM_WIN)
+	{
+		switch (m_pPlayer->GetTeamNumber())
+		{
+		case TF_TEAM_RED:
+		{
+			if (tfArea->HasTFAttributes(BLUE_SPAWN_ROOM))
+				return -1.0f;
+
+			break;
+		}
+		case TF_TEAM_BLUE:
+		{
+			if (tfArea->HasTFAttributes(RED_SPAWN_ROOM))
+				return -1.0f;
+
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	if (ladder != nullptr)
+		length = ladder->m_length;
+	else if (length <= 0.0f)
+		length = (area->GetCenter() - fromArea->GetCenter()).Length();
+
+	const float dz = fromArea->ComputeAdjacentConnectionHeightChange(area);
+	if (dz >= m_flStepHeight)
+	{
+		// too high!
+		if (dz >= m_flMaxJumpHeight)
+			return -1.0f;
+
+		// jumping is slow
+		length *= 2;
+	}
+	else
+	{
+		// yikes, this drop will hurt too much!
+		if (dz < -m_flDeathDropHeight)
+			return -1.0f;
+	}
+
+	return fromArea->GetCostSoFar() + length;
 }

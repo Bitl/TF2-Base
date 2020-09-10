@@ -225,14 +225,19 @@ public:
 	float			TransientlyConsistentRandomValue( float duration, int seed ) const;
 
 	CBaseObject*	GetNearestKnownSappableTarget( void ) const;
-	CBaseObject*	GetObjectOfType(int iObjectType);
 
+	//these exist because these functions are private. They work the same here though, only they check if the player is a bot.
 	void			HandleCommand_JoinClass_Bot(const char* pClassName);
+	void			HandleCommand_JoinTeam_Bot(const char* pTeamName);
+	int				GetAutoTeam_Bot(void);
 
 	bool			IsPointInRound(CTeamControlPoint* pPoint, CTeamControlPointMaster* pMaster);
 
-	void			CollectCapturePoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
-	void			CollectDefendPoints(CBasePlayer* player, CUtlVector<CTeamControlPoint*>* controlPointVector);
+	void			CollectCapturePoints(CUtlVector<CTeamControlPoint*>* controlPointVector);
+	void			CollectDefendPoints(CUtlVector<CTeamControlPoint*>* controlPointVector);
+
+	float			MedicGetChargeLevel(void);
+	CBaseEntity*	MedicGetHealTarget(void);
 
 	void			UpdateLookingAroundForEnemies( void );
 	void			UpdateLookingForIncomingEnemies( bool );
@@ -399,5 +404,25 @@ inline CTFBot *ToTFBot( CBaseEntity *ent )
 	Assert( dynamic_cast<CTFBot *>( ent ) );
 	return static_cast<CTFBot *>( ent );
 }
+
+class CTFPlayerPathCost : public IPathCost
+{
+public:
+	CTFPlayerPathCost(CTFPlayer* player)
+		: m_pPlayer(player)
+	{
+		m_flStepHeight = 18.0f;
+		m_flMaxJumpHeight = 72.0f;
+		m_flDeathDropHeight = 200.0f;
+	}
+
+	virtual float operator()(CNavArea* area, CNavArea* fromArea, const CNavLadder* ladder, const CFuncElevator* elevator, float length) const;
+
+private:
+	CTFPlayer* m_pPlayer;
+	float m_flStepHeight;
+	float m_flMaxJumpHeight;
+	float m_flDeathDropHeight;
+};
 
 #endif

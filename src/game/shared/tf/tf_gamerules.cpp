@@ -682,12 +682,28 @@ void CTFGameRules::SetupOnRoundStart( void )
 		m_iNumCaps[i] = 0;
 	}
 
+	//TF_MOD_BOT changes
+	m_hAmmoEntities.RemoveAll();
+	m_hHealthEntities.RemoveAll();
+
 	// Let all entities know that a new round is starting
 	CBaseEntity *pEnt = gEntList.FirstEnt();
 	while( pEnt )
 	{
 		variant_t emptyVariant;
 		pEnt->AcceptInput( "RoundSpawn", NULL, NULL, emptyVariant, 0 );
+
+		if (pEnt->ClassMatches("func_regenerate") || pEnt->ClassMatches("item_ammopack*"))
+		{
+			EHANDLE hndl(pEnt);
+			m_hAmmoEntities.AddToTail(hndl);
+		}
+
+		if (pEnt->ClassMatches("func_regenerate") || pEnt->ClassMatches("item_healthkit*"))
+		{
+			EHANDLE hndl(pEnt);
+			m_hHealthEntities.AddToTail(hndl);
+		}
 
 		pEnt = gEntList.NextEnt( pEnt );
 	}
@@ -1567,6 +1583,10 @@ VoiceCommandMenuItem_t *CTFGameRules::VoiceCommand( CBaseMultiplayerPlayer *pPla
 			if ( pTFPlayer )
 			{
 				pTFPlayer->DoAnimationEvent( PLAYERANIMEVENT_VOICE_COMMAND_GESTURE, iActivity );
+
+				//TF_MOD_BOT changes
+				if (iMenu == 0 && iItem == 0)
+					pTFPlayer->m_lastCalledMedic.Start();
 			}
 		}
 	}

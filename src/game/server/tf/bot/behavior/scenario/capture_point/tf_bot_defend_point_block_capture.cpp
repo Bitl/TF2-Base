@@ -174,7 +174,7 @@ bool CTFBotDefendPointBlockCapture::IsPointSafe( CTFBot *actor )
 	if ( !actor->m_cpChangedTimer.HasStarted() || actor->m_cpChangedTimer.IsElapsed() )
 	{
 		if ( m_pPoint && m_pPoint->GetTeamCapPercentage( actor->GetTeamNumber() ) >= tf_bot_defend_owned_point_percent.GetFloat() &&
-			( !m_pPoint->HasBeenContested() || gpGlobals->curtime - m_pPoint->LastContestedAt() >= 5.0f ) )
+			( !(m_pPoint->LastContestedAt() > 0.0f) || gpGlobals->curtime - m_pPoint->LastContestedAt() >= 5.0f ) )
 		{
 			const CKnownEntity *threat = actor->GetVisionInterface()->GetPrimaryKnownThreat();
 			if ( threat && ( threat->GetLastKnownPosition() - actor->GetAbsOrigin() ).LengthSqr() >= Square( 500.0f ) )
