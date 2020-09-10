@@ -363,7 +363,7 @@ void CTFBot::PhysicsSimulate( void )
 int CTFBot::GetAutoTeam_Bot(void)
 {
 	if (!IsBot())
-		return;
+		return TEAM_SPECTATOR;
 
 	int iTeam = TEAM_SPECTATOR;
 
@@ -1106,8 +1106,8 @@ CTeamControlPoint *CTFBot::GetMyControlPoint( void )
 
 		CUtlVector<CTeamControlPoint *> defensePoints;
 		CUtlVector<CTeamControlPoint *> attackPoints;
-		CollectDefendPoints( this, &defensePoints );
-		CollectCapturePoints( this, &attackPoints );
+		CollectDefendPoints( &defensePoints );
+		CollectCapturePoints( &attackPoints );
 
 		if ( ( IsPlayerClass( TF_CLASS_SNIPER ) || IsPlayerClass( TF_CLASS_ENGINEER )/* || BYTE( this + 10061 ) & ( 1 << 4 ) */) && !defensePoints.IsEmpty() )
 		{
