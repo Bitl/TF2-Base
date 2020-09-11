@@ -202,7 +202,7 @@ bool CTFBotDefendPoint::IsPointThreatened( CTFBot *actor )
 	if ( point == nullptr )
 		return false;
 
-	if ( !point->HasBeenContested() || gpGlobals->curtime - point->LastContestedAt() >= 5.0f )
+	if ( !(point->LastContestedAt() > 0.0f) || gpGlobals->curtime - point->LastContestedAt() >= 5.0f )
 	{
 		if ( !actor->m_cpChangedTimer.HasStarted() || actor->m_cpChangedTimer.IsElapsed() )
 			return false;

@@ -305,31 +305,6 @@ void CTFBotManager::OnForceKickedBots( int count )
 	m_flQuotaChangeTime = gpGlobals->curtime + 2.0f;
 }
 
-
-bool CTFBotManager::IsAllBotTeam( int teamNum )
-{
-	CTeam *pTeam = GetGlobalTeam( teamNum );
-	if ( pTeam == nullptr )
-		return false;
-
-	if ( pTeam->GetNumPlayers() > 0 )
-	{
-		for ( int i=0; i<pTeam->GetNumPlayers(); ++i )
-		{
-			CTFPlayer *pPlayer = ToTFPlayer( pTeam->GetPlayer( i ) );
-			if ( pPlayer && !pPlayer->IsBot() )
-				return false;
-		}
-	}
-	else
-	{
-		return teamNum != TFGameRules()->GetAssignedHumanTeam();
-	}
-
-	return true;
-}
-
-
 bool CTFBotManager::IsMeleeOnly() const
 {
 	return tf_bot_melee_only.GetBool();

@@ -17,7 +17,9 @@ class CFuncRespawnRoomVisualizer;
 //-----------------------------------------------------------------------------
 // Purpose: Defines an area considered inside a respawn room
 //-----------------------------------------------------------------------------
-class CFuncRespawnRoom : public CBaseTrigger
+//TF_MOD_BOT changes
+DECLARE_AUTO_LIST(IFuncRespawnRoomAutoList)
+class CFuncRespawnRoom : public CBaseTrigger, public IFuncRespawnRoomAutoList
 {
 	DECLARE_CLASS( CFuncRespawnRoom, CBaseTrigger );
 

@@ -32,7 +32,8 @@ ActionResult<CTFBot> CTFBotSpyHide::OnStart( CTFBot *me, Action<CTFBot> *action 
 	m_bAtHidingSpot = false;
 
 	/* assigns FLT_MAX instead if last known area is nullptr or if function returns negative */
-	m_flEnemyIncursionDistance = me->GetLastKnownArea()->GetIncursionDistance( GetEnemyTeam(me) );
+	CTFNavArea *tfnav = (CTFNavArea*)me->GetLastKnownArea();
+	m_flEnemyIncursionDistance = tfnav->GetIncursionDistance( GetEnemyTeam(me) );
 
 	m_teaseTimer.Start( RandomFloat( 5.0f, 10.0f ) );
 
@@ -157,7 +158,9 @@ bool CTFBotSpyHide::FindHidingSpot( CTFBot *actor )
 			enemy_team2 = TF_TEAM_RED;
 		}
 
-		if ( actor->GetLastKnownArea()->GetIncursionDistance( enemy_team2 ) >= 0.0f )
+		CTFNavArea* tfnav = (CTFNavArea*)actor->GetLastKnownArea();
+
+		if (tfnav->GetIncursionDistance( enemy_team2 ) >= 0.0f )
 			incursion_max = m_flEnemyIncursionDistance + 1000.0f;
 	}
 

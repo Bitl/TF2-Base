@@ -176,6 +176,9 @@ void CObjectSentrygun::Spawn()
 
 	m_flHeavyBulletResist = SENTRYGUN_MINIGUN_RESIST_LVL_1;
 
+	//TF_MOD_BOT changes
+	m_fireTimer.Start();
+
 	BaseClass::Spawn();
 
 	SetViewOffset( SENTRYGUN_EYE_OFFSET_LEVEL_1 );
@@ -555,6 +558,15 @@ bool CObjectSentrygun::OnWrenchHit( CTFPlayer *pPlayer )
 	}
 
 	return bDidWork;
+}
+
+//TF_MOD_BOT changes
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+float CObjectSentrygun::GetTimeSinceLastFired(void) const
+{
+	return m_fireTimer.GetElapsedTime();
 }
 
 //-----------------------------------------------------------------------------
@@ -1121,6 +1133,9 @@ bool CObjectSentrygun::Fire()
 			EmitSound( "Building_Sentrygun.Fire3" );
 			break;
 		}
+
+		//TF_MOD_BOT changes
+		m_fireTimer.Reset();
 
 		if ( !tf_sentrygun_ammocheat.GetBool() )
 		{

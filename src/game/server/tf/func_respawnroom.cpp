@@ -56,6 +56,8 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST( CFuncRespawnRoom, DT_FuncRespawnRoom )
 END_SEND_TABLE()
 
+//TF_MOD_BOT changes
+IMPLEMENT_AUTO_LIST(IFuncRespawnRoomAutoList)
 
 //-----------------------------------------------------------------------------
 // Purpose: 

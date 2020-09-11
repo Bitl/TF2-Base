@@ -36,8 +36,6 @@ public:
 	void OnForceAddedBots( int count );
 	void OnForceKickedBots( int count );
 
-	bool IsAllBotTeam( int teamNum );
-
 	bool IsMeleeOnly( void ) const;
 
 private:

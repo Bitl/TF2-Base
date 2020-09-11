@@ -28,6 +28,42 @@
 void DifficultyChanged( IConVar *var, const char *pOldValue, float flOldValue );
 void PrefixNameChanged( IConVar *var, const char *pOldValue, float flOldValue );
 
+bool IsPlayerClassName(char const* str)
+{
+	for (int i = 1; i < TF_CLASS_COUNT_ALL; ++i)
+	{
+		TFPlayerClassData_t* data = GetPlayerClassData(i);
+		if (FStrEq(str, data->m_szClassName))
+			return true;
+	}
+
+	return false;
+}
+
+int GetClassIndexFromString(char const* name, int maxClass)
+{	// what's the point of the second argument?
+	for (int i = TF_FIRST_NORMAL_CLASS; i <= maxClass; ++i)
+	{
+		// check length so "demo" matches "demoman", "heavy" matches "heavyweapons" etc.
+		size_t length = strlen(g_aPlayerClassNames_NonLocalized[i]);
+		if (length <= strlen(name) && !Q_strnicmp(g_aPlayerClassNames_NonLocalized[i], name, length))
+			return i;
+	}
+
+	return TF_CLASS_UNDEFINED;
+}
+
+bool IsTeamName(const char* str)
+{
+	for (int i = 0; i < g_Teams.Size(); ++i)
+	{
+		if (FStrEq(str, g_Teams[i]->GetName()))
+			return true;
+	}
+
+	return Q_strcasecmp(str, "spectate") == 0;
+}
+
 ConVar tf_bot_difficulty( "tf_bot_difficulty", "1", FCVAR_NONE, "Defines the skill of bots joining the game.  Values are: 0=easy, 1=normal, 2=hard, 3=expert.", &DifficultyChanged );
 ConVar tf_bot_force_class( "tf_bot_force_class", "", FCVAR_NONE, "If set to a class name, all TFBots will respawn as that class" );
 ConVar tf_bot_keep_class_after_death( "tf_bot_keep_class_after_death", "0" );
@@ -1181,6 +1217,145 @@ bool CTFBot::IsPointBeingContested( CTeamControlPoint *point ) const
 	}
 
 	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+const Vector& CTFBot::EstimateProjectileImpactPosition(CTFWeaponBaseGun* weapon)
+{
+	if (!weapon)
+		return GetAbsOrigin();
+
+	const QAngle& angles = EyeAngles();
+
+	float initVel = weapon->IsWeapon(TF_WEAPON_PIPEBOMBLAUNCHER) ? TF_PIPEBOMB_MIN_CHARGE_VEL : weapon->GetProjectileSpeed();
+
+	return EstimateProjectileImpactPosition(angles.x, angles.y, initVel);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+const Vector& CTFBot::EstimateStickybombProjectileImpactPosition(float pitch, float yaw, float charge)
+{
+	float initVel = charge * (TF_PIPEBOMB_MAX_CHARGE_VEL - TF_PIPEBOMB_MIN_CHARGE_VEL) + TF_PIPEBOMB_MIN_CHARGE_VEL;
+	return EstimateProjectileImpactPosition(pitch, yaw, initVel);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+const Vector& CTFBot::EstimateProjectileImpactPosition(float pitch, float yaw, float initVel)
+{
+	VPROF_BUDGET(__FUNCTION__, "NextBot");
+
+	Vector vecForward, vecRight, vecUp;
+	QAngle angles(pitch, yaw, 0.0f);
+	AngleVectors(angles, &vecForward, &vecRight, &vecUp);
+
+	Vector vecSrc = Weapon_ShootPosition();
+	vecSrc += vecForward * 16.0f + vecRight * 8.0f + vecUp * -6.0f;
+
+	const float initVelScale = 0.9f;
+	Vector      vecVelocity = initVelScale * ((vecForward * initVel) + (vecUp * 200.0f));
+
+	Vector      pos = vecSrc;
+	Vector      lastPos = pos;
+
+	extern ConVar sv_gravity;
+	const float g = sv_gravity.GetFloat();
+
+	Vector alongDir = vecForward;
+	alongDir.AsVector2D().NormalizeInPlace();
+
+	float alongVel = vecVelocity.AsVector2D().Length();
+
+	trace_t                        trace;
+	NextBotTraceFilterIgnoreActors traceFilter(this, COLLISION_GROUP_NONE);
+	const float timeStep = 0.01f;
+	const float maxTime = 5.0f;
+
+	float t = 0.0f;
+	do
+	{
+		float along = alongVel * t;
+		float height = vecVelocity.z * t - 0.5f * g * Square(t);
+
+		pos.x = vecSrc.x + alongDir.x * along;
+		pos.y = vecSrc.y + alongDir.y * along;
+		pos.z = vecSrc.z + height;
+
+		UTIL_TraceHull(lastPos, pos, -Vector(8, 8, 8), Vector(8, 8, 8), MASK_SOLID_BRUSHONLY, &traceFilter, &trace);
+
+		if (trace.DidHit())
+			break;
+
+		lastPos = pos;
+		t += timeStep;
+	} while (t < maxTime);
+
+	return trace.endpos;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CTFBot::IsCapturingPoint(void)
+{
+	CTriggerAreaCapture* pCapArea = GetControlPointStandingOn();
+	if (pCapArea)
+	{
+		CTeamControlPoint* pPoint = pCapArea->GetControlPoint();
+		if (pPoint && TFGameRules()->TeamMayCapturePoint(GetTeamNumber(), pPoint->GetPointIndex()) &&
+			TFGameRules()->PlayerMayCapturePoint(this, pPoint->GetPointIndex()))
+		{
+			return pPoint->GetOwner() != GetTeamNumber();
+		}
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CTriggerAreaCapture* CTFBot::GetControlPointStandingOn(void)
+{
+	touchlink_t* root = (touchlink_t*)GetDataObject(TOUCHLINK);
+	if (root)
+	{
+		touchlink_t* next = root->nextLink;
+		while (next != root)
+		{
+			CBaseEntity* pEntity = next->entityTouched;
+			if (!pEntity)
+				return NULL;
+
+			if (pEntity->IsSolidFlagSet(FSOLID_TRIGGER) && pEntity->IsBSPModel())
+			{
+				CTriggerAreaCapture* pCapArea = dynamic_cast<CTriggerAreaCapture*>(pEntity);
+				if (pCapArea)
+					return pCapArea;
+			}
+
+			next = next->nextLink;
+		}
+	}
+
+	return NULL;
+}
+
+bool CTFBot::IsTeleporterSendingPlayer(CObjectTeleporter *pTele)
+{
+	bool bResult = false;
+
+	if (pTele->GetTeleportingPlayer())
+	{
+		bResult = pTele->GetTeleportingPlayer() == this;
+	}
+
+	return bResult;
 }
 
 //-----------------------------------------------------------------------------

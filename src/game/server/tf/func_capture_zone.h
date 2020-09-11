@@ -15,7 +15,8 @@
 //
 // CTF Flag Capture Zone class.
 //
-class CCaptureZone : public CBaseTrigger
+DECLARE_AUTO_LIST(ICaptureZoneAutoList)
+class CCaptureZone : public CBaseTrigger, public ICaptureZoneAutoList
 {
 	DECLARE_CLASS( CCaptureZone, CBaseTrigger );
 

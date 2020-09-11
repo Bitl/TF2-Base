@@ -39,6 +39,8 @@ LINK_ENTITY_TO_CLASS( func_capturezone, CCaptureZone );
 IMPLEMENT_SERVERCLASS_ST( CCaptureZone, DT_CaptureZone )
 END_SEND_TABLE()
 
+IMPLEMENT_AUTO_LIST(ICaptureZoneAutoList);
+
 //=============================================================================
 //
 // CTF Flag Capture Zone functions.

@@ -17,8 +17,9 @@ class CTeamControlPointRound;
 //
 // TF team spawning entity.
 //
-
-class CTFTeamSpawn : public CPointEntity
+//TF_MOD_BOT changes
+DECLARE_AUTO_LIST(ITFTeamSpawnAutoList)
+class CTFTeamSpawn : public CPointEntity, public ITFTeamSpawnAutoList
 {
 public:
 	DECLARE_CLASS( CTFTeamSpawn, CPointEntity );

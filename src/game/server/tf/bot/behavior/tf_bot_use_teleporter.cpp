@@ -40,7 +40,7 @@ ActionResult<CTFBot> CTFBotUseTeleporter::Update(CTFBot *me, float dt)
 	if (exit == nullptr)
 		return Action<CTFBot>::Done("Missing teleporter exit");
 	
-	if (m_hTele->IsSendingPlayer( me ))
+	if (me->IsTeleporterSendingPlayer( exit ))
 	{
 		m_bTeleported = true;
 	}

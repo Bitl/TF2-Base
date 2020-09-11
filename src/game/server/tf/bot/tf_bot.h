@@ -16,8 +16,10 @@
 #include "tf_player.h"
 #include "tf_gamerules.h"
 #include "tf_path_follower.h"
-#include "tf\nav_mesh\tf_nav_area.h"
+#include "nav_mesh\tf_nav_area.h"
 #include "team_control_point_master.h"
+#include "tf_weaponbase_gun.h"
+#include "tf_obj_teleporter.h"
 
 class CTeamControlPoint;
 class CCaptureFlag;
@@ -239,6 +241,16 @@ public:
 	float			MedicGetChargeLevel(void);
 	CBaseEntity*	MedicGetHealTarget(void);
 
+	const Vector& EstimateProjectileImpactPosition(CTFWeaponBaseGun* weapon);
+	const Vector& EstimateProjectileImpactPosition(float pitch, float yaw, float speed);
+	const Vector& EstimateStickybombProjectileImpactPosition(float pitch, float yaw, float charge);
+
+	bool			IsCapturingPoint(void);
+
+	CTriggerAreaCapture* GetControlPointStandingOn(void);
+
+	bool			IsTeleporterSendingPlayer(CObjectTeleporter* pTele);
+
 	void			UpdateLookingAroundForEnemies( void );
 	void			UpdateLookingForIncomingEnemies( bool );
 
@@ -424,5 +436,9 @@ private:
 	float m_flMaxJumpHeight;
 	float m_flDeathDropHeight;
 };
+
+bool IsPlayerClassName(const char* name);
+int GetClassIndexFromString(const char* name, int maxClass = TF_LAST_NORMAL_CLASS);
+bool IsTeamName(const char* name);
 
 #endif

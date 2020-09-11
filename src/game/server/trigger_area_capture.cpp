@@ -17,6 +17,9 @@ extern ConVar mp_capstyle;
 extern ConVar mp_blockstyle;
 extern ConVar mp_capdeteriorate_time;
 
+//TF_MOD_BOT changes
+IMPLEMENT_AUTO_LIST(ITriggerAreaCaptureAutoList);
+
 BEGIN_DATADESC(CTriggerAreaCapture)
 
 	// Touch functions

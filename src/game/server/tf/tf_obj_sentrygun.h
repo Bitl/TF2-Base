@@ -55,6 +55,7 @@ public:
 
 	//TF_MOD_BOT changes
 	const QAngle& GetTurretAngles(void) const { return m_vecCurAngles; }
+	float GetTimeSinceLastFired(void) const;
 
 	virtual void	OnStartDisabled( void );
 	virtual void	OnEndDisabled( void );
@@ -147,6 +148,9 @@ private:
 	float m_flHeavyBulletResist;
 
 	int m_iPlacementBodygroup;
+
+	//TF_MOD_BOT changes
+	IntervalTimer m_fireTimer;
 
 	DECLARE_DATADESC();
 };

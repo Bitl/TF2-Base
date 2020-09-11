@@ -30,7 +30,10 @@
 //			Can either be capped by both teams at once, or just by one
 //			Time to capture and number of people required to capture are both passed by the mapper
 //-----------------------------------------------------------------------------
-class CTriggerAreaCapture : public CBaseTrigger
+//TF_MOD_BOT changes
+DECLARE_AUTO_LIST(ITriggerAreaCaptureAutoList);
+
+class CTriggerAreaCapture : public CBaseTrigger, public ITriggerAreaCaptureAutoList
 {
 	DECLARE_CLASS( CTriggerAreaCapture, CBaseTrigger );
 public:

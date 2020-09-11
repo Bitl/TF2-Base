@@ -58,6 +58,12 @@ public:
 		m_hTeleportingPlayer = pPlayer;
 	}
 
+	//TF_MOD_BOT changes
+	CTFPlayer *GetTeleportingPlayer()
+	{
+		return m_hTeleportingPlayer.Get();
+	}
+
 protected:
 	CNetworkVar( int, m_iState );
 	CNetworkVar( float, m_flRechargeTime );

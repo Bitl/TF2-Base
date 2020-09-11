@@ -158,6 +158,8 @@ public:
 	CHandle<CBaseObject> m_hObj2;
 };
 
+//TF_MOD_BOT changes
+IMPLEMENT_AUTO_LIST(IBaseObjectAutoList)
 
 //-----------------------------------------------------------------------------
 // Purpose: 
