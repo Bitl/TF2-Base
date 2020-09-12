@@ -253,7 +253,7 @@ void CTFBotManager::Update()
 
 void CTFBotManager::OnMapLoaded()
 {
-	LoadBotNames();
+	ReloadBotNames();
 
 	NextBotManager::OnMapLoaded();
 }
