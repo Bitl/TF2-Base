@@ -2,7 +2,7 @@ Team Fortress 2 Base w/ Bots
 =====
 
 This is a fork of the TF2-Base, a repo which provided the old Team Fortress 2 source code from late January 2008 ported to Source Engine 2013.
-**This repository ports over the reverse-engineered bot code from Team Fortress 2 Vintage 1.0 (https://github.com/TF2V/TF2Vintage/tree/1.0).** No other features were implemented.
+**This repository ports over the reverse-engineered TFBot and NextBot code from Team Fortress 2 Vintage 1.0 (https://github.com/TF2V/TF2Vintage/tree/1.0). This codebase does NOT contain any code from the leaked 2018 TF2 codebase.** No other features were implemented.
 
 Nav files from these sources:
 
