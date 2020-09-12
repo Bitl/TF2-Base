@@ -23,7 +23,8 @@ IMPLEMENT_AUTO_LIST(ITriggerAreaCaptureAutoList);
 BEGIN_DATADESC(CTriggerAreaCapture)
 
 	// Touch functions
-	DEFINE_FUNCTION( AreaTouch ),
+	//TF_MOD_BOT changes
+	DEFINE_FUNCTION( CTriggerAreaCaptureShim::Touch ),
 
 	// Think functions
 	DEFINE_THINKFUNC( CaptureThink ),

@@ -21,8 +21,9 @@ BEGIN_DATADESC( CCaptureZone )
 // Keyfields.
 DEFINE_KEYFIELD( m_nCapturePoint, FIELD_INTEGER, "CapturePoint" ),
 
+//TF_MOD_BOT changes
 // Functions.
-DEFINE_FUNCTION( Touch ),
+DEFINE_FUNCTION( CCaptureZoneShim::Touch ),
 
 // Inputs.
 DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
@@ -62,10 +63,11 @@ void CCaptureZone::Spawn()
 	m_flNextTouchingEnemyZoneWarning = -1;
 }
 
+//TF_MOD_BOT changes
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CCaptureZone::Touch( CBaseEntity *pOther )
+void CCaptureZone::CaptureTouch( CBaseEntity *pOther )
 {
 	// Is the zone enabled?
 	if ( IsDisabled() )

@@ -11,20 +11,30 @@
 
 #include "triggers.h"
 
+//TF_MOD_BOT changes
+class CCaptureZoneShim : public CBaseTrigger
+{
+	virtual void CaptureTouch(CBaseEntity* pOther) = 0;
+
+public:
+	void Touch(CBaseEntity* pOther) { return CaptureTouch(pOther); }
+};
+
 //=============================================================================
 //
 // CTF Flag Capture Zone class.
 //
 DECLARE_AUTO_LIST(ICaptureZoneAutoList)
-class CCaptureZone : public CBaseTrigger, public ICaptureZoneAutoList
+class CCaptureZone : public CCaptureZoneShim, public ICaptureZoneAutoList
 {
-	DECLARE_CLASS( CCaptureZone, CBaseTrigger );
+	DECLARE_CLASS( CCaptureZone, CCaptureZoneShim);
 
 public:
 	DECLARE_SERVERCLASS();
 
 	void	Spawn();
-	void	Touch( CBaseEntity *pOther );
+	//TF_MOD_BOT changes
+	void	CaptureTouch( CBaseEntity *pOther );
 
 	bool	IsDisabled( void );
 	void	SetDisabled( bool bDisabled );

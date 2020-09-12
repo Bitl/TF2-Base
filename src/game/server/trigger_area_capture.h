@@ -24,18 +24,26 @@
 #define MAX_CLIENT_AREAS				128
 #define MAX_AREA_CAPPERS				9
 
+//TF_MOD_BOT changes
 //-----------------------------------------------------------------------------
 // Purpose: An area entity that players must remain in in order to active another entity
 //			Triggers are fired on start of capture, on end of capture and on broken capture
 //			Can either be capped by both teams at once, or just by one
 //			Time to capture and number of people required to capture are both passed by the mapper
 //-----------------------------------------------------------------------------
-//TF_MOD_BOT changes
+// This class is to get around the fact that DEFINE_FUNCTION doesn't like multiple inheritance
+class CTriggerAreaCaptureShim : public CBaseTrigger
+{
+	virtual void AreaTouch(CBaseEntity* pOther) = 0;
+public:
+	void	Touch(CBaseEntity* pOther) { return AreaTouch(pOther); }
+};
+
 DECLARE_AUTO_LIST(ITriggerAreaCaptureAutoList);
 
-class CTriggerAreaCapture : public CBaseTrigger, public ITriggerAreaCaptureAutoList
+class CTriggerAreaCapture : public CTriggerAreaCaptureShim, public ITriggerAreaCaptureAutoList
 {
-	DECLARE_CLASS( CTriggerAreaCapture, CBaseTrigger );
+	DECLARE_CLASS(CTriggerAreaCapture, CTriggerAreaCaptureShim);
 public:
 	CTriggerAreaCapture();
 

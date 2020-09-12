@@ -14,14 +14,25 @@
 
 class CFuncRespawnRoomVisualizer;
 
+//TF_MOD_BOT changes
+//-----------------------------------------------------------------------------
+// Purpose: This class is to get around the fact that DEFINE_FUNCTION doesn't like multiple inheritance
+//-----------------------------------------------------------------------------
+class CFuncRespawnRoomShim : public CBaseTrigger
+{
+	virtual void RespawnRoomTouch(CBaseEntity* pOther) = 0;
+
+public:
+	void Touch(CBaseEntity* pOther) { return RespawnRoomTouch(pOther); }
+};
+
 //-----------------------------------------------------------------------------
 // Purpose: Defines an area considered inside a respawn room
 //-----------------------------------------------------------------------------
-//TF_MOD_BOT changes
 DECLARE_AUTO_LIST(IFuncRespawnRoomAutoList)
-class CFuncRespawnRoom : public CBaseTrigger, public IFuncRespawnRoomAutoList
+class CFuncRespawnRoom : public CFuncRespawnRoomShim, public IFuncRespawnRoomAutoList
 {
-	DECLARE_CLASS( CFuncRespawnRoom, CBaseTrigger );
+	DECLARE_CLASS( CFuncRespawnRoom, CFuncRespawnRoomShim);
 
 public:
 
