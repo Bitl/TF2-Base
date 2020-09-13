@@ -6,9 +6,9 @@ This is a fork of the TF2-Base, a repo which provided the old Team Fortress 2 so
 
 Nav files from these sources:
 
-tf2_misc_dir.vpk
-https://fladnag.net/downloads/jeux/serveur/tf2/maps/
-https://gamebanana.com/gamefiles/3023
+* tf2_misc_dir.vpk
+* https://fladnag.net/downloads/jeux/serveur/tf2/maps/
+* https://gamebanana.com/gamefiles/3023
 
 If you are looking for the original TF2-Base, here is a link to the original repository: https://github.com/NicknineTheEagle/TF2-Base
 
