@@ -682,7 +682,7 @@ void CTFNavMesh::ComputeIncursionDistances()
 		}
 	}
 
-	if ( !bFoundRedSpawn )
+	/*if ( !bFoundRedSpawn )
 	{
 		Warning(
 			"Can't compute incursion distances from the Red spawn room(s). Bots will perform poorly. This is caused by either a"
@@ -710,7 +710,7 @@ void CTFNavMesh::ComputeIncursionDistances()
 		float flIncursionDist = area->GetIncursionDistance( TF_TEAM_BLUE );
 		if ( flIncursionDist >= 0.0f )
 			area->SetIncursionDistance( TF_TEAM_RED, ( flMaxDistance - flIncursionDist ) );
-	}
+	}*/
 }
 
 void CTFNavMesh::ComputeIncursionDistances( CTFNavArea *startArea, int teamNum )

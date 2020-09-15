@@ -240,6 +240,22 @@ bool CTFBotVision::IsVisibleEntityNoticed( CBaseEntity *ent ) const
 		}
 	}
 
+	if (me->IsKnownSpy(pPlayer))
+	{
+		return true;
+	}
+
+	if (pPlayer->IsPlacingSapper())
+	{
+		me->RealizeSpy(pPlayer);
+		return true;
+	}
+
+	if (pPlayer->m_Shared.InCond(TF_COND_DISGUISED) && pPlayer->m_Shared.GetDisguiseTeam() == me->GetTeamNumber())
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -266,6 +282,11 @@ bool CTFBotVision::IsIgnored( CBaseEntity *ent ) const
 			return ( pPlayer->m_Shared.GetPercentInvisible() >= 0.75f );
 		}
 
+		if (pPlayer->IsPlacingSapper())
+		{
+			return false;
+		}
+
 		if ( !pPlayer->m_Shared.InCond( TF_COND_DISGUISED ) ||
 			 pPlayer->m_Shared.InCond( TF_COND_DISGUISING ) )
 		{
@@ -278,7 +299,7 @@ bool CTFBotVision::IsIgnored( CBaseEntity *ent ) const
 	if ( ent->IsBaseObject() )
 	{
 		CBaseObject *pObject = static_cast<CBaseObject *>( ent );
-		if ( pObject->IsPlacing())
+		if ( pObject->IsPlacing() || pObject->HasSapper())
 			return true;
 	}
 

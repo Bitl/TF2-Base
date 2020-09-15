@@ -385,6 +385,8 @@ public:
 	//TF_MOD_BOT changes
 	IntervalTimer m_lastCalledMedic;
 	CBaseObject* GetObjectOfType(int iObjectType);
+	void OnSapperPlaced(CBaseEntity* sappedObject);
+	bool IsPlacingSapper(void) const;
 
 private:
 
@@ -405,6 +407,11 @@ private:
 	// Taunt.
 	EHANDLE				m_hTauntScene;
 	bool				m_bInitTaunt;
+
+	//TF_MOD_BOT changes
+	// Sapper events
+	bool				m_bSapping;
+	CountdownTimer		m_sapperTimer;
 
 	// Client commands.
 	void				HandleCommand_JoinTeam( const char *pTeamName );
@@ -527,6 +534,16 @@ public:
 	void				PowerplayThink( void );
 	float				m_flPowerPlayTime;
 };
+
+//TF_MOD_BOT changes
+inline void CTFPlayer::OnSapperPlaced(CBaseEntity* sappedObject)
+{
+	m_sapperTimer.Start(3.0f);
+}
+inline bool CTFPlayer::IsPlacingSapper(void) const
+{
+	return !m_sapperTimer.IsElapsed();
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Utility function to convert an entity into a tf player.
