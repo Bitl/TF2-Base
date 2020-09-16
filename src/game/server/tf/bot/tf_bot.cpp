@@ -2626,7 +2626,61 @@ void PrefixNameChanged( IConVar *var, const char *pOldValue, float flOldValue )
 }
 
 
-CON_COMMAND_F(tf_bot_add, "Add a bot.", FCVAR_GAMEDLL)
+CON_COMMAND_F( tf_bot_add, "Add a bot.", FCVAR_GAMEDLL )
+{
+	if ( UTIL_IsCommandIssuedByServerAdmin() )
+	{
+		int count = Clamp( Q_atoi( args.Arg( 1 ) ), 1, gpGlobals->maxClients );
+		for ( int i = 0; i < count; ++i )
+		{
+			char szBotName[64];
+			if ( args.ArgC() > 4 )
+				Q_snprintf( szBotName, sizeof szBotName, args.Arg( 4 ) );
+			else
+				V_strcpy_safe( szBotName, TheTFBots().GetRandomBotName() );
+
+			CTFBot *bot = NextBotCreatePlayerBot<CTFBot>( szBotName );
+			if ( bot == nullptr )
+				return;
+
+			char szTeam[10];
+			if ( args.ArgC() > 2 )
+			{
+				if ( IsTeamName( args.Arg( 2 ) ) )
+					Q_snprintf( szTeam, sizeof szTeam, args.Arg( 2 ) );
+				else
+				{
+					Warning( "Invalid argument '%s'\n", args.Arg( 2 ) );
+					Q_snprintf( szTeam, sizeof szTeam, "auto" );
+				}
+			}
+			else
+				Q_snprintf( szTeam, sizeof szTeam, "auto" );
+
+			bot->HandleCommand_JoinTeam( szTeam );
+
+			char szClassName[16];
+			if ( args.ArgC() > 3 )
+			{
+				if ( IsPlayerClassName( args.Arg( 3 ) ) )
+					Q_snprintf( szClassName, sizeof szClassName, args.Arg( 3 ) );
+				else
+				{
+					Warning( "Invalid argument '%s'\n", args.Arg( 3 ) );
+					Q_snprintf( szClassName, sizeof szClassName, "random" );
+				}
+			}
+			else
+				Q_snprintf( szClassName, sizeof szClassName, "random" );
+
+			bot->HandleCommand_JoinClass( szClassName );
+		}
+
+		TheTFBots().OnForceAddedBots( count );
+	}
+}
+
+CON_COMMAND_F(tf_bot_add_new, "Add a bot. (currently crashes the game)", FCVAR_GAMEDLL)
 {
 	if (UTIL_IsCommandIssuedByServerAdmin())
 	{
