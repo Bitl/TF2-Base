@@ -387,10 +387,13 @@ public:
 	CBaseObject* GetObjectOfType(int iObjectType);
 	void OnSapperPlaced(CBaseEntity* sappedObject);
 	bool IsPlacingSapper(void) const;
+	// Client commands.
+	void				HandleCommand_JoinTeam(const char* pTeamName);
+	void				HandleCommand_JoinClass(const char* pClassName);
+	void				HandleCommand_JoinTeam_NoMenus(const char* pTeamName);
+	int					GetAutoTeam(void);
 
 private:
-
-	int					GetAutoTeam( void );
 
 	// Creation/Destruction.
 	void				InitClass( void );
@@ -412,11 +415,6 @@ private:
 	// Sapper events
 	bool				m_bSapping;
 	CountdownTimer		m_sapperTimer;
-
-	// Client commands.
-	void				HandleCommand_JoinTeam( const char *pTeamName );
-	void				HandleCommand_JoinClass( const char *pClassName );
-	void				HandleCommand_JoinTeam_NoMenus( const char *pTeamName );
 
 	// Bots.
 	friend void			Bot_Think( CTFPlayer *pBot );

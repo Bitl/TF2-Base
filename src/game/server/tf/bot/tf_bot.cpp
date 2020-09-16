@@ -387,272 +387,9 @@ void CTFBot::PhysicsSimulate( void )
 	if ( !IsAlive() && m_bWantsToChangeClass )
 	{
 		const char *pszClassname = GetNextSpawnClassname();
-		HandleCommand_JoinClass_Bot( pszClassname );
+		HandleCommand_JoinClass( pszClassname );
 
 		m_bWantsToChangeClass = false;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-int CTFBot::GetAutoTeam_Bot(void)
-{
-	if (!IsBot())
-		return TEAM_SPECTATOR;
-
-	int iTeam = TEAM_SPECTATOR;
-
-	CTFTeam* pBlue = TFTeamMgr()->GetTeam(TF_TEAM_BLUE);
-	CTFTeam* pRed = TFTeamMgr()->GetTeam(TF_TEAM_RED);
-
-	if (pBlue && pRed)
-	{
-		if (pBlue->GetNumPlayers() < pRed->GetNumPlayers())
-		{
-			iTeam = TF_TEAM_BLUE;
-		}
-		else if (pRed->GetNumPlayers() < pBlue->GetNumPlayers())
-		{
-			iTeam = TF_TEAM_RED;
-		}
-		else
-		{
-			iTeam = RandomInt(0, 1) ? TF_TEAM_RED : TF_TEAM_BLUE;
-		}
-	}
-
-	return iTeam;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CTFBot::HandleCommand_JoinTeam_Bot(const char* pTeamName)
-{
-	if (!IsBot())
-		return;
-
-	int iTeam = TF_TEAM_RED;
-	if (stricmp(pTeamName, "auto") == 0)
-	{
-		iTeam = GetAutoTeam_Bot();
-	}
-	else if (stricmp(pTeamName, "spectate") == 0)
-	{
-		iTeam = TEAM_SPECTATOR;
-	}
-	else
-	{
-		for (int i = 0; i < TF_TEAM_COUNT; ++i)
-		{
-			if (stricmp(pTeamName, g_aTeamNames[i]) == 0)
-			{
-				iTeam = i;
-				break;
-			}
-		}
-	}
-
-	if (iTeam == TEAM_SPECTATOR)
-	{
-		// Prevent this is the cvar is set
-		if (!mp_allowspectators.GetInt() && !IsHLTV())
-		{
-			ClientPrint(this, HUD_PRINTCENTER, "#Cannot_Be_Spectator");
-			return;
-		}
-
-		if (GetTeamNumber() != TEAM_UNASSIGNED && !IsDead())
-		{
-			CommitSuicide(false, true);
-		}
-
-		ChangeTeam(TEAM_SPECTATOR);
-
-		// do we have fadetoblack on? (need to fade their screen back in)
-		if (mp_fadetoblack.GetBool())
-		{
-			color32_s clr = { 0,0,0,255 };
-			UTIL_ScreenFade(this, clr, 0, 0, FFADE_IN | FFADE_PURGE);
-		}
-	}
-	else
-	{
-		if (iTeam == GetTeamNumber())
-		{
-			return;	// we wouldn't change the team
-		}
-
-		// if this join would unbalance the teams, refuse
-		// come up with a better way to tell the player they tried to join a full team!
-		if (TFGameRules()->WouldChangeUnbalanceTeams(iTeam, GetTeamNumber()))
-		{
-			ShowViewPortPanel(PANEL_TEAM);
-			return;
-		}
-
-		ChangeTeam(iTeam);
-
-		ShowViewPortPanel((iTeam == TF_TEAM_RED) ? PANEL_CLASS_RED : PANEL_CLASS_BLUE);
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CTFBot::HandleCommand_JoinClass_Bot(const char* pClassName)
-{
-	// can only join a class after you join a valid team
-	if (!IsBot())
-		return;
-
-	if (GetTeamNumber() <= LAST_SHARED_TEAM)
-		return;
-
-	// In case we don't get the class menu message before the spawn timer
-	// comes up, fake that we've closed the menu.
-	SetClassMenuOpen(false);
-
-	if (TFGameRules()->InStalemate())
-	{
-		if (IsAlive() && !TFGameRules()->CanChangeClassInStalemate())
-		{
-			ClientPrint(this, HUD_PRINTTALK, "#game_stalemate_cant_change_class");
-			return;
-		}
-	}
-
-	int iClass = TF_CLASS_UNDEFINED;
-	bool bShouldNotRespawn = false;
-
-	if ((TFGameRules()->State_Get() == GR_STATE_TEAM_WIN) && (TFGameRules()->GetWinningTeam() != GetTeamNumber()))
-	{
-		m_bAllowInstantSpawn = false;
-		bShouldNotRespawn = true;
-	}
-
-	if (stricmp(pClassName, "random") != 0 && stricmp(pClassName, "auto") != 0)
-	{
-		int i = 0;
-
-		for (i = TF_CLASS_SCOUT; i < TF_CLASS_COUNT_ALL; i++)
-		{
-			if (stricmp(pClassName, GetPlayerClassData(i)->m_szClassName) == 0)
-			{
-				iClass = i;
-				break;
-			}
-		}
-		if (i > TF_LAST_NORMAL_CLASS)
-		{
-			Warning("HandleCommand_JoinClass_Bot( %s ) - invalid class name.\n", pClassName);
-			return;
-		}
-	}
-	else
-	{
-		// The player has selected Random class...so let's pick one for them.
-		do {
-			// Don't let them be the same class twice in a row
-			iClass = random->RandomInt(TF_FIRST_NORMAL_CLASS, TF_LAST_NORMAL_CLASS);
-		} while (iClass == GetPlayerClass()->GetClassIndex());
-	}
-
-	// joining the same class?
-	if (iClass != TF_CLASS_RANDOM && iClass == GetDesiredPlayerClassIndex())
-	{
-		// If we're dead, and we have instant spawn, respawn us immediately. Catches the case
-		// were a player misses respawn wave because they're at the class menu, and then changes
-		// their mind and reselects their current class.
-		if (m_bAllowInstantSpawn && !IsAlive())
-		{
-			ForceRespawn();
-		}
-		return;
-	}
-
-	SetDesiredPlayerClassIndex(iClass);
-	IGameEvent* event = gameeventmanager->CreateEvent("player_changeclass");
-	if (event)
-	{
-		event->SetInt("userid", GetUserID());
-		event->SetInt("class", iClass);
-
-		gameeventmanager->FireEvent(event);
-	}
-
-	// are they TF_CLASS_RANDOM and trying to select the class they're currently playing as (so they can stay this class)?
-	if (iClass == GetPlayerClass()->GetClassIndex())
-	{
-		// If we're dead, and we have instant spawn, respawn us immediately. Catches the case
-		// were a player misses respawn wave because they're at the class menu, and then changes
-		// their mind and reselects their current class.
-		if (m_bAllowInstantSpawn && !IsAlive())
-		{
-			ForceRespawn();
-		}
-		return;
-	}
-
-	// We can respawn instantly if:
-	//	- We're dead, and we're past the required post-death time
-	//	- We're inside a respawn room
-	//	- We're in the stalemate grace period
-	bool bInRespawnRoom = PointInRespawnRoom(this, WorldSpaceCenter());
-	if (bInRespawnRoom && !IsAlive())
-	{
-		// If we're not spectating ourselves, ignore respawn rooms. Otherwise we'll get instant spawns
-		// by spectating someone inside a respawn room.
-		bInRespawnRoom = (GetObserverTarget() == this);
-	}
-	bool bDeadInstantSpawn = !IsAlive();
-	if (bDeadInstantSpawn && m_flDeathTime)
-	{
-		// In death mode, don't allow class changes to force respawns ahead of respawn waves
-		float flWaveTime = TFGameRules()->GetNextRespawnWave(GetTeamNumber(), this);
-		bDeadInstantSpawn = (gpGlobals->curtime > flWaveTime);
-	}
-	bool bInStalemateClassChangeTime = false;
-	if (TFGameRules()->InStalemate())
-	{
-		// Stalemate overrides respawn rules. Only allow spawning if we're in the class change time.
-		bInStalemateClassChangeTime = TFGameRules()->CanChangeClassInStalemate();
-		bDeadInstantSpawn = false;
-		bInRespawnRoom = false;
-	}
-	if (bShouldNotRespawn == false && (m_bAllowInstantSpawn || bDeadInstantSpawn || bInRespawnRoom || bInStalemateClassChangeTime))
-	{
-		ForceRespawn();
-		return;
-	}
-
-	if (iClass == TF_CLASS_RANDOM)
-	{
-		if (IsAlive())
-		{
-			ClientPrint(this, HUD_PRINTTALK, "#game_respawn_asrandom");
-		}
-		else
-		{
-			ClientPrint(this, HUD_PRINTTALK, "#game_spawn_asrandom");
-		}
-	}
-	else
-	{
-		if (IsAlive())
-		{
-			ClientPrint(this, HUD_PRINTTALK, "#game_respawn_as", GetPlayerClassData(iClass)->m_szLocalizableName);
-		}
-		else
-		{
-			ClientPrint(this, HUD_PRINTTALK, "#game_spawn_as", GetPlayerClassData(iClass)->m_szLocalizableName);
-		}
-	}
-
-	if (IsAlive() && (GetHudClassAutoKill() == true) && bShouldNotRespawn == false)
-	{
-		CommitSuicide(false, true);
 	}
 }
 
@@ -2889,57 +2626,74 @@ void PrefixNameChanged( IConVar *var, const char *pOldValue, float flOldValue )
 }
 
 
-CON_COMMAND_F( tf_bot_add, "Add a bot.", FCVAR_GAMEDLL )
+CON_COMMAND_F(tf_bot_add, "Add a bot.", FCVAR_GAMEDLL)
 {
-	if ( UTIL_IsCommandIssuedByServerAdmin() )
+	if (UTIL_IsCommandIssuedByServerAdmin())
 	{
-		int count = Clamp( Q_atoi( args.Arg( 1 ) ), 1, gpGlobals->maxClients );
-		for ( int i = 0; i < count; ++i )
+		char const* pszBotName = NULL;
+		char const* pszTeamName = "auto";
+		char const* pszClassName = "random";
+		int nNumBots = 1;
+		bool bNoQuota = false;
+		int nSkill = tf_bot_difficulty.GetInt();
+
+		for (int i = 0; i < args.ArgC(); ++i)
 		{
-			char szBotName[64];
-			if ( args.ArgC() > 4 )
-				Q_snprintf( szBotName, sizeof szBotName, args.Arg( 4 ) );
-			else
-				V_strcpy_safe( szBotName, TheTFBots().GetRandomBotName() );
+			nSkill = Max(nSkill, NameToDifficulty(args[i]));
+			nNumBots = V_atoi(args[i]);
 
-			CTFBot *bot = NextBotCreatePlayerBot<CTFBot>( szBotName );
-			if ( bot == nullptr )
-				return;
-
-			char szTeam[10];
-			if ( args.ArgC() > 2 )
+			if (IsPlayerClassName(args[i]))
 			{
-				if ( IsTeamName( args.Arg( 2 ) ) )
-					Q_snprintf( szTeam, sizeof szTeam, args.Arg( 2 ) );
-				else
-				{
-					Warning( "Invalid argument '%s'\n", args.Arg( 2 ) );
-					Q_snprintf( szTeam, sizeof szTeam, "auto" );
-				}
+				pszClassName = args[i];
+			}
+			else if (IsTeamName(args[i]))
+			{
+				pszTeamName = args[i];
+			}
+			else if (!V_stricmp(args[i], "noquota"))
+			{
+				bNoQuota = true;
+			}
+			else if (nNumBots == 1)
+			{
+				pszBotName = args[i];
 			}
 			else
-				Q_snprintf( szTeam, sizeof szTeam, "auto" );
-
-			bot->HandleCommand_JoinTeam_Bot( szTeam );
-
-			char szClassName[16];
-			if ( args.ArgC() > 3 )
 			{
-				if ( IsPlayerClassName( args.Arg( 3 ) ) )
-					Q_snprintf( szClassName, sizeof szClassName, args.Arg( 3 ) );
-				else
-				{
-					Warning( "Invalid argument '%s'\n", args.Arg( 3 ) );
-					Q_snprintf( szClassName, sizeof szClassName, "random" );
-				}
+				Warning("Invalid argument '%s'\n", args[i]);
 			}
-			else
-				Q_snprintf( szClassName, sizeof szClassName, "random" );
-
-			bot->HandleCommand_JoinClass_Bot( szClassName );
 		}
 
-		TheTFBots().OnForceAddedBots( count );
+		pszClassName = FStrEq(tf_bot_force_class.GetString(), "") ? pszClassName : tf_bot_force_class.GetString();
+
+		int iTeam = TEAM_UNASSIGNED;
+		if (FStrEq(pszTeamName, "red"))
+			iTeam = TF_TEAM_RED;
+		else if (FStrEq(pszTeamName, "blue"))
+			iTeam = TF_TEAM_BLUE;
+
+		nNumBots = Clamp(nNumBots, 1, gpGlobals->maxClients);
+		char szBotName[128]; int nCount = 0;
+		for (int i = 0; i < nNumBots; ++i)
+		{
+			if (pszBotName == NULL)
+				CreateBotName(iTeam, GetClassIndexFromString(pszClassName), nSkill, szBotName, sizeof szBotName);
+			else
+				V_strcpy_safe(szBotName, pszBotName);
+
+			CTFBot* pBot = NextBotCreatePlayerBot<CTFBot>(pszBotName);
+			if (pBot == nullptr)
+				break;
+
+			pBot->HandleCommand_JoinTeam(pszTeamName);
+			pBot->HandleCommand_JoinClass(pszClassName);
+			pBot->m_iSkill = (CTFBot::DifficultyType)nSkill;
+
+			nCount++;
+		}
+
+		if (!bNoQuota)
+			TheTFBots().OnForceAddedBots(nCount);
 	}
 }
 

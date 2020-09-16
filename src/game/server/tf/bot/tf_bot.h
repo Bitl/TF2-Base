@@ -228,11 +228,6 @@ public:
 
 	CBaseObject*	GetNearestKnownSappableTarget( void ) const;
 
-	//these exist because these functions are private. They work the same here though, only they check if the player is a bot.
-	void			HandleCommand_JoinClass_Bot(const char* pClassName);
-	void			HandleCommand_JoinTeam_Bot(const char* pTeamName);
-	int				GetAutoTeam_Bot(void);
-
 	bool			IsPointInRound(CTeamControlPoint* pPoint, CTeamControlPointMaster* pMaster);
 
 	void			CollectCapturePoints(CUtlVector<CTeamControlPoint*>* controlPointVector);
