@@ -81,12 +81,6 @@ ConVar tf_bot_sniper_goal_entity_move_tolerance( "tf_bot_sniper_goal_entity_move
 ConVar tf_bot_suspect_spy_touch_interval( "tf_bot_suspect_spy_touch_interval", "5", FCVAR_CHEAT, "How many seconds back to look for touches against suspicious spies", true, 0.0f, false, 0.0f );
 ConVar tf_bot_suspect_spy_forget_cooldown( "tf_bot_suspect_spy_forced_cooldown", "5", FCVAR_CHEAT, "How long to consider a suspicious spy as suspicious", true, 0.0f, false, 0.0f );
 
-ConVar tf_bot_use_items( "tf_bot_use_items", "1" );
-ConVar tf_bot_debug_items( "tf_bot_debug_items", "0", FCVAR_CHEAT );
-ConVar tf_bot_random_loadouts( "tf_bot_random_loadouts", "0", FCVAR_NOTIFY, "Randomly outfit class specific items to bots?" );
-ConVar tf_bot_reroll_loadout_chance( "tf_bot_reroll_loadout_chance", "33", FCVAR_NONE, "The chance to reroll a loadout selection if tf_bot_keep_items_after_death = 1" );
-ConVar tf_bot_keep_items_after_death( "tf_bot_keep_items_after_death", "1", FCVAR_NONE, "Keep our item sets we were given when respawning?" );
-
 LINK_ENTITY_TO_CLASS( tf_bot, CTFBot )
 
 CBasePlayer *CTFBot::AllocatePlayerEntity( edict_t *edict, const char *playerName )
