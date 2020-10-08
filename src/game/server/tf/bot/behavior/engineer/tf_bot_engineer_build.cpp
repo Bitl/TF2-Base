@@ -32,7 +32,6 @@ ActionResult<CTFBot> CTFBotEngineerBuild::OnStart( CTFBot *me, Action<CTFBot> *p
 
 ActionResult<CTFBot> CTFBotEngineerBuild::Update( CTFBot *me, float dt )
 {
-	// if ( TFGameRules()->IsPVEModeActive() )
 	return Action<CTFBot>::Continue();
 }
 
@@ -44,8 +43,7 @@ ActionResult<CTFBot> CTFBotEngineerBuild::OnResume( CTFBot *me, Action<CTFBot> *
 
 Action<CTFBot> *CTFBotEngineerBuild::InitialContainedAction( CTFBot *me )
 {
-	// if ( TFGameRules()->IsPVEModeActive() ) return new CTFBotEngineerMoveToBuild;
-	return new CTFBotEngineerBuildTeleportEntrance;
+	return new CTFBotEngineerMoveToBuild;
 }
 
 
