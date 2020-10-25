@@ -2687,8 +2687,8 @@ CON_COMMAND_F(tf_bot_add_new, "Add a bot. (currently crashes the game)", FCVAR_G
 
 		for (int i = 0; i < args.ArgC(); ++i)
 		{
-			nSkill = Max(nSkill, NameToDifficulty(args[i]));
-			nNumBots = V_atoi(args[i]);
+			int nParsedSkill = NameToDifficulty(args[i]);
+			int nParsedNumBots = V_atoi(args[i]);
 
 			if (IsPlayerClassName(args[i]))
 			{
@@ -2701,6 +2701,14 @@ CON_COMMAND_F(tf_bot_add_new, "Add a bot. (currently crashes the game)", FCVAR_G
 			else if (!V_stricmp(args[i], "noquota"))
 			{
 				bNoQuota = true;
+			}
+			else if (nParsedSkill != -1)
+			{
+				nSkill = nParsedSkill;
+			}
+			else if (nParsedNumBots >= 1)
+			{
+				nNumBots = nParsedNumBots;
 			}
 			else if (nNumBots == 1)
 			{
